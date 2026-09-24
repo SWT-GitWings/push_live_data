@@ -400,23 +400,20 @@ select:focus,
 }
 
 .user-suggestion-panel {
-    position: absolute;
-    top: calc(100% + 6px);
-    left: 0;
-    right: 0;
-    z-index: 30;
+    position: fixed;
+    z-index: 1000;
     max-height: 220px;
     overflow-y: auto;
     background: #fff;
     border: 1px solid var(--border);
     border-radius: 10px;
-    box-shadow: 0 14px 34px rgba(0, 0, 0, .14);
+    box-shadow: 0 -14px 34px rgba(0, 0, 0, .14);
     padding: 6px;
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transform: translateY(-8px) scaleY(.96);
-    transform-origin: top;
+    transform: translateY(8px) scaleY(.96);
+    transform-origin: bottom;
     transition: opacity .16s ease, transform .16s ease, visibility .16s;
 }
 

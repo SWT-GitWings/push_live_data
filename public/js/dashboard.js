@@ -8,11 +8,13 @@ const receiverTrigger = document.getElementById("receiverTrigger");
 const receiverLabel = document.getElementById("receiverLabel");
 const receiverPanel = document.getElementById("receiverPanel");
 const mappedHeading = document.getElementById("mappedHeading");
+const suggestionPanel = document.getElementById("sharedSuggestionPanel");
 
 let users = [];
 let currentType = "user";
 let receivers = [];
 let selectedReceiverId = "";
+let activeSuggestionIndex = null;
 const suggestionTimers = {};
 const suggestionCache = {};
 
@@ -45,7 +47,6 @@ function renderUsers() {
                 autocomplete="off"
                 aria-label="Mapped user ${index + 1}"
             >
-            <div class="user-suggestion-panel" id="suggestions-${index}" role="listbox"></div>
         </div>
 
         <button
@@ -72,7 +73,7 @@ function renderUsers() {
             if (query.length > 3) {
                 updateSuggestions(index, query);
             } else {
-                closeSuggestions(index);
+                closeSuggestions();
             }
 
             highlightDuplicates();
@@ -81,7 +82,7 @@ function renderUsers() {
         input.addEventListener("focus", event => {
             const index = event.target.dataset.index;
             if (suggestionCache[index]?.length) {
-                openSuggestions(index);
+                openSuggestionsFor(index);
             }
         });
     });
@@ -197,8 +198,7 @@ function updateSuggestions(index, query) {
             }
 
             suggestionCache[index] = data.results;
-            renderSuggestionOptions(index);
-            openSuggestions(index);
+            openSuggestionsFor(index);
 
         } catch (error) {
             console.error("Failed to fetch suggestions:", error);
@@ -206,27 +206,50 @@ function updateSuggestions(index, query) {
     }, 250);
 }
 
-function renderSuggestionOptions(index) {
-    const panel = document.getElementById(`suggestions-${index}`);
+/*
+|--------------------------------------------------------------------------
+| Position the shared floating panel (position: fixed) directly above the
+| target input, using viewport coordinates so it is never clipped by the
+| scrollable/rounded card container - like a comment box mention popup.
+|--------------------------------------------------------------------------
+*/
 
-    if (!panel) {
+function positionSuggestionPanel(input) {
+    const rect = input.getBoundingClientRect();
+
+    suggestionPanel.style.left = `${rect.left}px`;
+    suggestionPanel.style.width = `${rect.width}px`;
+    suggestionPanel.style.bottom = `${window.innerHeight - rect.top + 6}px`;
+}
+
+function openSuggestionsFor(index) {
+    const input = document.querySelector(`.user-input[data-index="${index}"]`);
+
+    if (!input) {
         return;
     }
 
+    activeSuggestionIndex = index;
+    positionSuggestionPanel(input);
+    renderSuggestionOptions(index);
+    suggestionPanel.classList.add("open");
+}
+
+function renderSuggestionOptions(index) {
     const results = suggestionCache[index] || [];
 
     if (results.length === 0) {
-        panel.innerHTML = `<div class="user-suggestion-empty">No matches found</div>`;
+        suggestionPanel.innerHTML = `<div class="user-suggestion-empty">No matches found</div>`;
         return;
     }
 
-    panel.innerHTML = results
+    suggestionPanel.innerHTML = results
         .map((item, itemIndex) => `
         <div class="user-suggestion-option" data-item="${itemIndex}">${escapeHtml(item.label)}</div>
     `)
         .join("");
 
-    panel.querySelectorAll(".user-suggestion-option").forEach(option => {
+    suggestionPanel.querySelectorAll(".user-suggestion-option").forEach(option => {
         option.addEventListener("click", () => {
             const item = suggestionCache[index]?.[Number(option.dataset.item)];
 
@@ -241,22 +264,15 @@ function renderSuggestionOptions(index) {
                 input.value = item.label;
             }
 
-            closeSuggestions(index);
+            closeSuggestions();
             highlightDuplicates();
         });
     });
 }
 
-function openSuggestions(index) {
-    document.getElementById(`suggestions-${index}`)?.classList.add("open");
-}
-
-function closeSuggestions(index) {
-    document.getElementById(`suggestions-${index}`)?.classList.remove("open");
-}
-
-function closeAllSuggestions() {
-    document.querySelectorAll(".user-suggestion-panel.open").forEach(panel => panel.classList.remove("open"));
+function closeSuggestions() {
+    suggestionPanel.classList.remove("open");
+    activeSuggestionIndex = null;
 }
 
 async function loadReceivers() {
@@ -361,15 +377,30 @@ document.addEventListener("click", event => {
         closeReceiverDropdown();
     }
 
-    if (!event.target.closest(".user-input-wrap")) {
-        closeAllSuggestions();
+    if (!event.target.closest(".user-input-wrap") && !event.target.closest("#sharedSuggestionPanel")) {
+        closeSuggestions();
     }
 });
 
 document.addEventListener("keydown", event => {
     if (event.key === "Escape") {
         closeReceiverDropdown();
-        closeAllSuggestions();
+        closeSuggestions();
+    }
+});
+
+window.addEventListener("resize", () => {
+    if (activeSuggestionIndex !== null) {
+        closeSuggestions();
+    }
+});
+
+userList.addEventListener("scroll", () => {
+    if (activeSuggestionIndex !== null) {
+        const input = document.querySelector(`.user-input[data-index="${activeSuggestionIndex}"]`);
+        if (input) {
+            positionSuggestionPanel(input);
+        }
     }
 });
 
