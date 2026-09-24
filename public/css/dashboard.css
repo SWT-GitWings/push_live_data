@@ -670,7 +670,7 @@ select:focus,
   }
 
   .userList {
-    max-height: 40dvh;
+    max-height: 42dvh;
     overflow-y: auto;
   }
 
@@ -759,7 +759,7 @@ select:focus,
   .action-btn {
     min-width: 0;
     flex: 1;
-    height: 50px;
+    height: 38px;
     padding: 0 12px;
     font-size: 16px;
   }
