@@ -5,6 +5,7 @@ const path = require("path");
 const session = require("express-session");
 
 const authRoutes = require("./routes/auth");
+const receiverRoutes = require("./routes/receiver");
 const authMiddleware = require("./middleware/authMiddleware");
 
 const app = express();
@@ -55,6 +56,7 @@ app.use(
 */
 
 app.use("/api/auth", authRoutes);
+app.use("/api/receivers", authMiddleware, receiverRoutes);
 
 /*
 |--------------------------------------------------------------------------
@@ -65,7 +67,7 @@ app.use("/api/auth", authRoutes);
 app.get("/login", (req, res) => {
 
     if (req.session.user) {
-        return res.redirect("/push-live-data.html");
+        return res.redirect("/dashboard");
     }
 
     res.sendFile(
@@ -79,7 +81,7 @@ app.get("/login", (req, res) => {
 |--------------------------------------------------------------------------
 */
 
-app.get("/push-live-data.html", authMiddleware, (req, res) => {
+app.get("/dashboard", authMiddleware, (req, res) => {
     res.sendFile(
         path.join(__dirname, "protected", "push-live-data.html")
     );
@@ -93,7 +95,7 @@ app.get("/push-live-data.html", authMiddleware, (req, res) => {
 
 app.get("/", (req, res) => {
     if (req.session.user) {
-        return res.redirect("/push-live-data.html");
+        return res.redirect("/dashboard");
     }
 
     res.redirect("/login");

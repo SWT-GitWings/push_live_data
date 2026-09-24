@@ -1,8 +1,5 @@
 const express = require("express");
-const bcrypt = require("bcrypt");
-
-const pool = require("../config/database");
-
+const users = require("../config/users");
 const router = express.Router();
 
 /*
@@ -14,68 +11,38 @@ const router = express.Router();
 router.post("/login", async (req, res) => {
 
     try {
-
-        const {
-            username,
-            password
-        } = req.body;
+        const { username, password } = req.body;
 
         if (!username || !password) {
-
             return res.status(400).json({
                 success: false,
                 message: "Username and password are required."
             });
-
         }
 
-        const [rows] = await pool.execute(
-            `
-            SELECT
-                id,
-                username,
-                password,
-                name,
-                status
-            FROM users
-            WHERE username = ?
-            LIMIT 1
-            `,
-            [username]
-        );
+        const user = users.find((u) => u.username === username);
 
-        if (rows.length === 0) {
-
+        if (!user) {
             return res.status(401).json({
                 success: false,
                 message: "Invalid username or password."
             });
-
         }
 
-        const user = rows[0];
-
         if (!user.status) {
-
             return res.status(403).json({
                 success: false,
                 message: "User account is disabled."
             });
-
         }
 
-        const passwordMatch = await bcrypt.compare(
-            password,
-            user.password
-        );
+        const passwordMatch = password === user.password;
 
         if (!passwordMatch) {
-
             return res.status(401).json({
                 success: false,
                 message: "Invalid username or password."
             });
-
         }
 
         /*
@@ -83,7 +50,6 @@ router.post("/login", async (req, res) => {
         | Create session
         |--------------------------------------------------------------------------
         */
-
         req.session.user = {
             id: user.id,
             username: user.username,
@@ -93,11 +59,10 @@ router.post("/login", async (req, res) => {
         return res.json({
             success: true,
             message: "Login successful.",
-            redirect: "/push-live-data.html"
+            redirect: "/dashboard"
         });
 
     } catch (error) {
-
         console.error("Login error:", error);
 
         return res.status(500).json({
@@ -119,7 +84,6 @@ router.post("/logout", (req, res) => {
     req.session.destroy((error) => {
 
         if (error) {
-
             return res.status(500).json({
                 success: false,
                 message: "Logout failed."
@@ -132,10 +96,7 @@ router.post("/logout", (req, res) => {
             success: true,
             redirect: "/login"
         });
-
     });
-
 });
-
 
 module.exports = router;

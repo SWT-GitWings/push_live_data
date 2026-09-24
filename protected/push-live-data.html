@@ -1,0 +1,92 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Push Live Data - Sproutwings</title>
+
+    <link rel="stylesheet" href="/public/css/dashboard.css">
+</head>
+
+<body>
+    <div class="page">
+        <main class="app">
+
+            <header class="header">
+                <div class="brand">
+                    <img src="https://www.sproutwings.in/assets/Sproutwings-Black5-jZNzq4K0.png" alt="Sproutwings">
+                </div>
+
+                <div class="page-title">
+                    <img class="upload-icon" src="/public/images/cloud_upload_icon.svg" alt="">
+                    <span>Push Live Data</span>
+                </div>
+            </header>
+
+            <nav class="tabs" aria-label="Main navigation">
+                <button class="tab active" type="button">
+                    <img class="tab-icon" src="/public/images/cloud_upload_icon.svg" alt="">
+                    Push Live Data
+                </button>
+
+                <button class="tab" type="button">
+                    <img class="tab-icon" src="/public/images/growth_arrow_icon.svg" alt="">
+                    Mines Push
+                </button>
+            </nav>
+
+            <section class="content">
+
+                <div class="receiver-row">
+                    <label for="receiver">
+                        Select Receiver <span class="required">*</span>
+                    </label>
+
+                    <select id="receiver">
+                        <option value="">Select receiver</option>
+                        <option>Receiver 01</option>
+                        <option>Receiver 02</option>
+                        <option>Receiver 03</option>
+                        <option>Receiver 04</option>
+                    </select>
+                </div>
+
+                <section class="mapped-card">
+                    <div class="mapped-header">
+                        <h2>Mapped Users</h2>
+
+                        <div class="mapping-actions">
+                            <button class="round-btn" id="addUser" type="button" title="Add mapped user">+</button>
+                            <button class="round-btn remove" id="removeLast" type="button"
+                                title="Remove last mapped user">−</button>
+                        </div>
+                    </div>
+
+                    <div class="table-head">
+                        <div>#</div>
+                        <div>User</div>
+                        <div></div>
+                    </div>
+
+                    <div id="userList"></div>
+                </section>
+
+                <div class="footer">
+                    <button class="action-btn save" id="saveBtn" type="button">
+                        <img class="tab-icon" src="/public/images/save_icon.svg" alt=""> Save
+                    </button>
+
+                    <button class="action-btn clear" id="clearBtn" type="button">
+                        <img class="tab-icon" src="/public/images/reset_icon.svg" alt=""> Clear
+                    </button>
+                </div>
+
+            </section>
+        </main>
+    </div>
+
+    <script src="/public/js/dashboard.js"></script>
+</body>
+
+</html>
