@@ -7,6 +7,7 @@
     <title>Push Live Data - Sproutwings</title>
 
     <link rel="stylesheet" href="/public/css/dashboard.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
 </head>
 
 <body>
@@ -19,24 +20,27 @@
                 </div>
 
                 <div class="page-title">
-                    <img class="upload-icon" src="/public/images/cloud_upload_icon.svg" alt="">
+                    <img class="upload-icon" src="/public/images/cloud_upload.svg" alt="">
                     <span>Push Live Data</span>
                 </div>
             </header>
 
             <nav class="tabs" aria-label="Main navigation">
                 <button class="tab active" type="button">
-                    <img class="tab-icon" src="/public/images/cloud_upload_icon.svg" alt="">
+                    <img class="tab-icon" src="/public/images/cloud_upload_red.svg" alt="">
                     Push Live Data
                 </button>
 
                 <button class="tab" type="button">
-                    <img class="tab-icon" src="/public/images/growth_arrow_icon.svg" alt="">
+                    <img class="tab-icon" src="/public/images/growth_arrow.svg" alt="">
                     Mines Push
                 </button>
             </nav>
 
-            <section class="content">
+            <section style="flex: 1 1 auto;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;" class="content">
 
                 <div class="receiver-row">
                     <label for="receiverTrigger">
@@ -46,8 +50,9 @@
                     <div class="custom-select" id="receiverDropdown">
                         <button type="button" class="custom-select-trigger" id="receiverTrigger" aria-haspopup="listbox"
                             aria-expanded="false">
-                            <span id="receiverLabel">Select receiver</span>
-                            <span class="custom-select-arrow">▾</span>
+                            <span id="receiverLabel" class="receiver-label">Select receiver</span>
+                            <span class="custom-select-arrow"><img src="/public/images/angle_down.svg" alt=""
+                                    class=""></span>
                         </button>
 
                         <div class="custom-select-panel" id="receiverPanel" role="listbox" tabindex="-1"></div>
@@ -71,7 +76,7 @@
                         <div></div>
                     </div>
 
-                    <div id="userList"></div>
+                    <div class="userList" id="userList"></div>
                 </section>
 
                 <div class="footer">

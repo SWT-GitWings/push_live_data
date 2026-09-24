@@ -19,22 +19,22 @@ const suggestionTimers = {};
 const suggestionCache = {};
 
 function renderUsers() {
-    userList.innerHTML = "";
+  userList.innerHTML = "";
 
-    if (users.length === 0) {
-        userList.innerHTML = `
+  if (users.length === 0) {
+    userList.innerHTML = `
         <div class="empty">
             No mapped users. Click <strong>+</strong> to add a user.
         </div>
     `;
-        return;
-    }
+    return;
+  }
 
-    users.forEach((user, index) => {
-        const row = document.createElement("div");
-        row.className = "user-row";
+  users.forEach((user, index) => {
+    const row = document.createElement("div");
+    row.className = "user-row";
 
-        row.innerHTML = `
+    row.innerHTML = `
         <div class="user-number">${index + 1}</div>
 
         <div class="user-input-wrap">
@@ -58,53 +58,55 @@ function renderUsers() {
         ><img class="tab-icon" src="/public/images/trash_icon.svg" alt=""></img></button>
     `;
 
-        userList.appendChild(row);
+    userList.appendChild(row);
+  });
+
+  document.querySelectorAll(".user-input").forEach((input) => {
+    input.addEventListener("input", (event) => {
+      const index = event.target.dataset.index;
+      const label = event.target.value;
+      const matched = suggestionCache[index]?.find(
+        (item) => item.label === label,
+      );
+
+      users[index] = { value: matched ? matched.value : null, label };
+
+      const query = label.trim();
+      if (query.length > 3) {
+        updateSuggestions(index, query);
+      } else {
+        closeSuggestions();
+      }
+
+      highlightDuplicates();
     });
 
-    document.querySelectorAll(".user-input").forEach(input => {
-        input.addEventListener("input", event => {
-            const index = event.target.dataset.index;
-            const label = event.target.value;
-            const matched = suggestionCache[index]?.find(item => item.label === label);
-
-            users[index] = { value: matched ? matched.value : null, label };
-
-            const query = label.trim();
-            if (query.length > 3) {
-                updateSuggestions(index, query);
-            } else {
-                closeSuggestions();
-            }
-
-            highlightDuplicates();
-        });
-
-        input.addEventListener("focus", event => {
-            const index = event.target.dataset.index;
-            if (suggestionCache[index]?.length) {
-                openSuggestionsFor(index);
-            }
-        });
+    input.addEventListener("focus", (event) => {
+      const index = event.target.dataset.index;
+      if (suggestionCache[index]?.length) {
+        openSuggestionsFor(index);
+      }
     });
+  });
 
-    document.querySelectorAll("[data-delete]").forEach(button => {
-        button.addEventListener("click", event => {
-            const index = Number(event.currentTarget.dataset.delete);
-            users.splice(index, 1);
-            renderUsers();
-        });
+  document.querySelectorAll("[data-delete]").forEach((button) => {
+    button.addEventListener("click", (event) => {
+      const index = Number(event.currentTarget.dataset.delete);
+      users.splice(index, 1);
+      renderUsers();
     });
+  });
 
-    highlightDuplicates();
+  highlightDuplicates();
 }
 
 function escapeHtml(value) {
-    return String(value)
-        .replaceAll("&", "&amp;")
-        .replaceAll("<", "&lt;")
-        .replaceAll(">", "&gt;")
-        .replaceAll('"', "&quot;")
-        .replaceAll("'", "&#039;");
+  return String(value)
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
 }
 
 /*
@@ -116,22 +118,22 @@ function escapeHtml(value) {
 */
 
 function resolveRawValue(user) {
-    const label = (user.label || "").trim();
+  const label = (user.label || "").trim();
 
-    if (!label) {
-        return null;
-    }
+  if (!label) {
+    return null;
+  }
 
-    if (user.value) {
-        return String(user.value).trim();
-    }
+  if (user.value) {
+    return String(user.value).trim();
+  }
 
-    const match = label.match(/\(([^()]+)\)\s*$/);
-    if (currentType === "imei" && match) {
-        return match[1].trim();
-    }
+  const match = label.match(/\(([^()]+)\)\s*$/);
+  if (currentType === "imei" && match) {
+    return match[1].trim();
+  }
 
-    return label;
+  return label;
 }
 
 /*
@@ -141,37 +143,40 @@ function resolveRawValue(user) {
 */
 
 function findDuplicateIndexes() {
-    const seen = new Map();
-    const duplicates = new Set();
+  const seen = new Map();
+  const duplicates = new Set();
 
-    users.forEach((user, index) => {
-        const raw = resolveRawValue(user);
+  users.forEach((user, index) => {
+    const raw = resolveRawValue(user);
 
-        if (!raw) {
-            return;
-        }
+    if (!raw) {
+      return;
+    }
 
-        const key = raw.toLowerCase();
+    const key = raw.toLowerCase();
 
-        if (seen.has(key)) {
-            duplicates.add(seen.get(key));
-            duplicates.add(index);
-        } else {
-            seen.set(key, index);
-        }
-    });
+    if (seen.has(key)) {
+      duplicates.add(seen.get(key));
+      duplicates.add(index);
+    } else {
+      seen.set(key, index);
+    }
+  });
 
-    return duplicates;
+  return duplicates;
 }
 
 function highlightDuplicates() {
-    const duplicates = findDuplicateIndexes();
+  const duplicates = findDuplicateIndexes();
 
-    document.querySelectorAll(".user-input").forEach(input => {
-        input.classList.toggle("duplicate", duplicates.has(Number(input.dataset.index)));
-    });
+  document.querySelectorAll(".user-input").forEach((input) => {
+    input.classList.toggle(
+      "duplicate",
+      duplicates.has(Number(input.dataset.index)),
+    );
+  });
 
-    return duplicates;
+  return duplicates;
 }
 
 /*
@@ -182,28 +187,29 @@ function highlightDuplicates() {
 */
 
 function findUnresolvedIndex() {
-    return users.findIndex(user => (user.label || "").trim() && !user.value);
+  return users.findIndex((user) => (user.label || "").trim() && !user.value);
 }
 
 function updateSuggestions(index, query) {
-    clearTimeout(suggestionTimers[index]);
+  clearTimeout(suggestionTimers[index]);
 
-    suggestionTimers[index] = setTimeout(async () => {
-        try {
-            const response = await fetch(`/api/receivers/search/${currentType}?q=${encodeURIComponent(query)}`);
-            const data = await response.json();
+  suggestionTimers[index] = setTimeout(async () => {
+    try {
+      const response = await fetch(
+        `/api/receivers/search/${currentType}?q=${encodeURIComponent(query)}`,
+      );
+      const data = await response.json();
 
-            if (!data.success) {
-                return;
-            }
+      if (!data.success) {
+        return;
+      }
 
-            suggestionCache[index] = data.results;
-            openSuggestionsFor(index);
-
-        } catch (error) {
-            console.error("Failed to fetch suggestions:", error);
-        }
-    }, 250);
+      suggestionCache[index] = data.results;
+      openSuggestionsFor(index);
+    } catch (error) {
+      console.error("Failed to fetch suggestions:", error);
+    }
+  }, 250);
 }
 
 /*
@@ -215,105 +221,109 @@ function updateSuggestions(index, query) {
 */
 
 function positionSuggestionPanel(input) {
-    const rect = input.getBoundingClientRect();
+  const rect = input.getBoundingClientRect();
 
-    suggestionPanel.style.left = `${rect.left}px`;
-    suggestionPanel.style.width = `${rect.width}px`;
-    suggestionPanel.style.bottom = `${window.innerHeight - rect.top + 6}px`;
+  suggestionPanel.style.left = `${rect.left}px`;
+  suggestionPanel.style.width = `${rect.width}px`;
+  suggestionPanel.style.bottom = `${window.innerHeight - rect.top + 6}px`;
 }
 
 function openSuggestionsFor(index) {
-    const input = document.querySelector(`.user-input[data-index="${index}"]`);
+  const input = document.querySelector(`.user-input[data-index="${index}"]`);
 
-    if (!input) {
-        return;
-    }
+  if (!input) {
+    return;
+  }
 
-    activeSuggestionIndex = index;
-    positionSuggestionPanel(input);
-    renderSuggestionOptions(index);
-    suggestionPanel.classList.add("open");
+  activeSuggestionIndex = index;
+  positionSuggestionPanel(input);
+  renderSuggestionOptions(index);
+  suggestionPanel.classList.add("open");
 }
 
 function renderSuggestionOptions(index) {
-    const results = suggestionCache[index] || [];
+  const results = suggestionCache[index] || [];
 
-    if (results.length === 0) {
-        suggestionPanel.innerHTML = `<div class="user-suggestion-empty">No matches found</div>`;
-        return;
-    }
+  if (results.length === 0) {
+    suggestionPanel.innerHTML = `<div class="user-suggestion-empty">No matches found</div>`;
+    return;
+  }
 
-    suggestionPanel.innerHTML = results
-        .map((item, itemIndex) => `
+  suggestionPanel.innerHTML = results
+    .map(
+      (item, itemIndex) => `
         <div class="user-suggestion-option" data-item="${itemIndex}">${escapeHtml(item.label)}</div>
-    `)
-        .join("");
+    `,
+    )
+    .join("");
 
-    suggestionPanel.querySelectorAll(".user-suggestion-option").forEach(option => {
-        option.addEventListener("click", () => {
-            const item = suggestionCache[index]?.[Number(option.dataset.item)];
+  suggestionPanel
+    .querySelectorAll(".user-suggestion-option")
+    .forEach((option) => {
+      option.addEventListener("click", () => {
+        const item = suggestionCache[index]?.[Number(option.dataset.item)];
 
-            if (!item) {
-                return;
-            }
+        if (!item) {
+          return;
+        }
 
-            users[index] = { value: item.value, label: item.label };
+        users[index] = { value: item.value, label: item.label };
 
-            const input = document.querySelector(`.user-input[data-index="${index}"]`);
-            if (input) {
-                input.value = item.label;
-            }
+        const input = document.querySelector(
+          `.user-input[data-index="${index}"]`,
+        );
+        if (input) {
+          input.value = item.label;
+        }
 
-            closeSuggestions();
-            highlightDuplicates();
-        });
+        closeSuggestions();
+        highlightDuplicates();
+      });
     });
 }
 
 function closeSuggestions() {
-    suggestionPanel.classList.remove("open");
-    activeSuggestionIndex = null;
+  suggestionPanel.classList.remove("open");
+  activeSuggestionIndex = null;
 }
 
 async function loadReceivers() {
-    try {
-        const response = await fetch("/api/receivers");
-        const data = await response.json();
+  try {
+    const response = await fetch("/api/receivers");
+    const data = await response.json();
 
-        if (!data.success) {
-            return;
-        }
-
-        receivers = data.receivers;
-        renderReceiverOptions();
-
-    } catch (error) {
-        console.error("Failed to load receivers:", error);
+    if (!data.success) {
+      return;
     }
+
+    receivers = data.receivers;
+    renderReceiverOptions();
+  } catch (error) {
+    console.error("Failed to load receivers:", error);
+  }
 }
 
 async function loadReceiverMapping(id) {
-    try {
-        const response = await fetch(`/api/receivers/${id}`);
-        const data = await response.json();
+  try {
+    const response = await fetch(`/api/receivers/${id}`);
+    const data = await response.json();
 
-        if (!data.success) {
-            return;
-        }
-
-        const { type_of_data, mapped_display } = data.receiver;
-        const isUser = type_of_data === "user";
-
-        currentType = type_of_data;
-        mappedHeading.textContent = isUser ? "Users" : "IMEI";
-
-        users = mapped_display || [];
-
-        renderUsers();
-
-    } catch (error) {
-        console.error("Failed to load receiver mapping:", error);
+    if (!data.success) {
+      return;
     }
+
+    const { type_of_data, mapped_display } = data.receiver;
+    const isUser = type_of_data === "user";
+
+    currentType = type_of_data;
+    mappedHeading.textContent = isUser ? "Users" : "IMEI";
+
+    users = mapped_display || [];
+
+    renderUsers();
+  } catch (error) {
+    console.error("Failed to load receiver mapping:", error);
+  }
 }
 
 /*
@@ -323,166 +333,177 @@ async function loadReceiverMapping(id) {
 */
 
 function renderReceiverOptions() {
-    receiverPanel.innerHTML = receivers
-        .map(({ id, receiver_name }) => `
+  receiverPanel.innerHTML = receivers
+    .map(
+      ({ id, receiver_name }) => `
         <div
             class="custom-select-option${String(id) === String(selectedReceiverId) ? " selected" : ""}"
             role="option"
             data-id="${id}"
         >${escapeHtml(receiver_name)}</div>
-    `)
-        .join("");
+    `,
+    )
+    .join("");
 
-    receiverPanel.querySelectorAll(".custom-select-option").forEach(option => {
-        option.addEventListener("click", () => {
-            selectReceiver(option.dataset.id, option.textContent);
-        });
+  receiverPanel.querySelectorAll(".custom-select-option").forEach((option) => {
+    option.addEventListener("click", () => {
+      selectReceiver(option.dataset.id, option.textContent);
     });
+  });
 }
 
 function openReceiverDropdown() {
-    receiverDropdown.classList.add("open");
-    receiverTrigger.setAttribute("aria-expanded", "true");
+  receiverDropdown.classList.add("open");
+  receiverTrigger.setAttribute("aria-expanded", "true");
 }
 
 function closeReceiverDropdown() {
-    receiverDropdown.classList.remove("open");
-    receiverTrigger.setAttribute("aria-expanded", "false");
+  receiverDropdown.classList.remove("open");
+  receiverTrigger.setAttribute("aria-expanded", "false");
 }
 
 function selectReceiver(id, name) {
-    selectedReceiverId = id || "";
-    receiverLabel.textContent = id ? name : "Select receiver";
+  selectedReceiverId = id || "";
+  receiverLabel.textContent = id ? name : "Select receiver";
 
-    renderReceiverOptions();
-    closeReceiverDropdown();
+  renderReceiverOptions();
+  closeReceiverDropdown();
 
-    if (!selectedReceiverId) {
-        currentType = "user";
-        mappedHeading.textContent = "Users";
-        users = [];
-        renderUsers();
-        return;
-    }
-
-    loadReceiverMapping(selectedReceiverId);
-}
-
-receiverTrigger.addEventListener("click", () => {
-    receiverDropdown.classList.contains("open") ? closeReceiverDropdown() : openReceiverDropdown();
-});
-
-document.addEventListener("click", event => {
-    if (!receiverDropdown.contains(event.target)) {
-        closeReceiverDropdown();
-    }
-
-    if (!event.target.closest(".user-input-wrap") && !event.target.closest("#sharedSuggestionPanel")) {
-        closeSuggestions();
-    }
-});
-
-document.addEventListener("keydown", event => {
-    if (event.key === "Escape") {
-        closeReceiverDropdown();
-        closeSuggestions();
-    }
-});
-
-window.addEventListener("resize", () => {
-    if (activeSuggestionIndex !== null) {
-        closeSuggestions();
-    }
-});
-
-userList.addEventListener("scroll", () => {
-    if (activeSuggestionIndex !== null) {
-        const input = document.querySelector(`.user-input[data-index="${activeSuggestionIndex}"]`);
-        if (input) {
-            positionSuggestionPanel(input);
-        }
-    }
-});
-
-
-addUserBtn.addEventListener("click", () => {
-    users.unshift({ value: null, label: "" });
-    renderUsers();
-
-    const inputs = document.querySelectorAll(".user-input");
-    inputs[0]?.focus();
-});
-
-removeLastBtn.addEventListener("click", () => {
-    if (users.length > 0) {
-        users.shift();
-        renderUsers();
-    }
-});
-
-clearBtn.addEventListener("click", () => {
-    selectedReceiverId = "";
-    receiverLabel.textContent = "Select receiver";
-    renderReceiverOptions();
+  if (!selectedReceiverId) {
     currentType = "user";
     mappedHeading.textContent = "Users";
     users = [];
     renderUsers();
+    return;
+  }
+
+  loadReceiverMapping(selectedReceiverId);
+}
+
+receiverTrigger.addEventListener("click", () => {
+  receiverDropdown.classList.contains("open")
+    ? closeReceiverDropdown()
+    : openReceiverDropdown();
+});
+
+document.addEventListener("click", (event) => {
+  if (!receiverDropdown.contains(event.target)) {
+    closeReceiverDropdown();
+  }
+
+  if (
+    !event.target.closest(".user-input-wrap") &&
+    !event.target.closest("#sharedSuggestionPanel")
+  ) {
+    closeSuggestions();
+  }
+});
+
+document.addEventListener("keydown", (event) => {
+  if (event.key === "Escape") {
+    closeReceiverDropdown();
+    closeSuggestions();
+  }
+});
+
+window.addEventListener("resize", () => {
+  if (activeSuggestionIndex !== null) {
+    closeSuggestions();
+  }
+});
+
+userList.addEventListener("scroll", () => {
+  if (activeSuggestionIndex !== null) {
+    const input = document.querySelector(
+      `.user-input[data-index="${activeSuggestionIndex}"]`,
+    );
+    if (input) {
+      positionSuggestionPanel(input);
+    }
+  }
+});
+
+addUserBtn.addEventListener("click", () => {
+  users.unshift({ value: null, label: "" });
+  renderUsers();
+
+  const inputs = document.querySelectorAll(".user-input");
+  inputs[0]?.focus();
+});
+
+removeLastBtn.addEventListener("click", () => {
+  if (users.length > 0) {
+    users.shift();
+    renderUsers();
+  }
+});
+
+clearBtn.addEventListener("click", () => {
+  selectedReceiverId = "";
+  receiverLabel.textContent = "Select receiver";
+  renderReceiverOptions();
+  currentType = "user";
+  mappedHeading.textContent = "Users";
+  users = [];
+  renderUsers();
 });
 
 saveBtn.addEventListener("click", async () => {
-    if (!selectedReceiverId) {
-        alert("Please select a receiver.");
-        receiverTrigger.focus();
-        return;
+  if (!selectedReceiverId) {
+    alert("Please select a receiver.");
+    receiverTrigger.focus();
+    return;
+  }
+
+  const unresolvedIndex = findUnresolvedIndex();
+  if (unresolvedIndex !== -1) {
+    const input = document.querySelector(
+      `.user-input[data-index="${unresolvedIndex}"]`,
+    );
+    input?.classList.add("duplicate");
+    input?.focus();
+    alert(
+      `Row ${unresolvedIndex + 1}: please pick a match from the search suggestions before saving.`,
+    );
+    return;
+  }
+
+  if (highlightDuplicates().size > 0) {
+    alert(
+      "Duplicate values found. Please resolve the highlighted fields before saving.",
+    );
+    return;
+  }
+
+  const validValues = users.map(resolveRawValue).filter(Boolean);
+
+  if (validValues.length === 0) {
+    alert("Please add at least one mapped value.");
+    return;
+  }
+
+  try {
+    const response = await fetch(`/api/receivers/${selectedReceiverId}`, {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        type_of_data: currentType,
+        values: validValues,
+      }),
+    });
+
+    const data = await response.json();
+
+    if (!data.success) {
+      alert(data.message || "Failed to save Push Live Data configuration.");
+      return;
     }
 
-    const unresolvedIndex = findUnresolvedIndex();
-    if (unresolvedIndex !== -1) {
-        const input = document.querySelector(`.user-input[data-index="${unresolvedIndex}"]`);
-        input?.classList.add("duplicate");
-        input?.focus();
-        alert(`Row ${unresolvedIndex + 1}: please pick a match from the search suggestions before saving.`);
-        return;
-    }
-
-    if (highlightDuplicates().size > 0) {
-        alert("Duplicate values found. Please resolve the highlighted fields before saving.");
-        return;
-    }
-
-    const validValues = users
-        .map(resolveRawValue)
-        .filter(Boolean);
-
-    if (validValues.length === 0) {
-        alert("Please add at least one mapped value.");
-        return;
-    }
-
-    try {
-        const response = await fetch(`/api/receivers/${selectedReceiverId}`, {
-            method: "PUT",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-                type_of_data: currentType,
-                values: validValues
-            })
-        });
-
-        const data = await response.json();
-
-        if (!data.success) {
-            alert(data.message || "Failed to save Push Live Data configuration.");
-            return;
-        }
-
-        alert("Push Live Data configuration saved.");
-
-    } catch (error) {
-        console.error("Failed to save receiver mapping:", error);
-        alert("Failed to save Push Live Data configuration.");
-    }
+    alert("Push Live Data configuration saved.");
+  } catch (error) {
+    console.error("Failed to save receiver mapping:", error);
+    alert("Failed to save Push Live Data configuration.");
+  }
 });
 
 renderUsers();
