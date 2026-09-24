@@ -173,6 +173,17 @@ function highlightDuplicates() {
     return duplicates;
 }
 
+/*
+|--------------------------------------------------------------------------
+| Find rows with typed text that never resolved to a real id/imei
+| (i.e. no suggestion was selected from the search results).
+|--------------------------------------------------------------------------
+*/
+
+function findUnresolvedIndex() {
+    return users.findIndex(user => (user.label || "").trim() && !user.value);
+}
+
 function updateSuggestions(index, query) {
     clearTimeout(suggestionTimers[index]);
 
@@ -392,6 +403,15 @@ saveBtn.addEventListener("click", async () => {
     if (!selectedReceiverId) {
         alert("Please select a receiver.");
         receiverTrigger.focus();
+        return;
+    }
+
+    const unresolvedIndex = findUnresolvedIndex();
+    if (unresolvedIndex !== -1) {
+        const input = document.querySelector(`.user-input[data-index="${unresolvedIndex}"]`);
+        input?.classList.add("duplicate");
+        input?.focus();
+        alert(`Row ${unresolvedIndex + 1}: please pick a match from the search suggestions before saving.`);
         return;
     }
 
