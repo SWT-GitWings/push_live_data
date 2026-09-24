@@ -107,7 +107,7 @@ async function loadReceiverMapping(id) {
         const { type_of_data, mapped_display } = data.receiver;
         const isUser = type_of_data === "user";
 
-        mappedHeading.textContent = isUser ? "Mapped Users" : "IMEI";
+        mappedHeading.textContent = isUser ? "Users" : "IMEI";
 
         users = mapped_display || [];
 
@@ -120,7 +120,7 @@ async function loadReceiverMapping(id) {
 
 receiver.addEventListener("change", () => {
     if (!receiver.value) {
-        mappedHeading.textContent = "Mapped Users";
+        mappedHeading.textContent = "Users";
         users = [];
         renderUsers();
         return;
@@ -131,23 +131,23 @@ receiver.addEventListener("change", () => {
 
 
 addUserBtn.addEventListener("click", () => {
-    users.push("");
+    users.unshift("");
     renderUsers();
 
     const inputs = document.querySelectorAll(".user-input");
-    inputs[inputs.length - 1]?.focus();
+    inputs[0]?.focus();
 });
 
 removeLastBtn.addEventListener("click", () => {
     if (users.length > 0) {
-        users.pop();
+        users.shift();
         renderUsers();
     }
 });
 
 clearBtn.addEventListener("click", () => {
     receiver.value = "";
-    mappedHeading.textContent = "Mapped Users";
+    mappedHeading.textContent = "Users";
     users = [];
     renderUsers();
 });

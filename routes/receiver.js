@@ -9,10 +9,16 @@ const router = express.Router();
 |--------------------------------------------------------------------------
 */
 
+function sortIdsDescending(ids) {
+    return [...ids].sort((a, b) => (BigInt(a) > BigInt(b) ? -1 : 1));
+}
+
 async function resolveMappedDisplay(typeOfData, userValue, imeiValue) {
 
     if (typeOfData === "user") {
-        const ids = (userValue || "").split(",").map(item => item.trim()).filter(Boolean);
+        const ids = sortIdsDescending(
+            (userValue || "").split(",").map(item => item.trim()).filter(Boolean)
+        );
 
         if (ids.length === 0) {
             return [];
@@ -29,7 +35,9 @@ async function resolveMappedDisplay(typeOfData, userValue, imeiValue) {
     }
 
     if (typeOfData === "imei") {
-        const imeis = (imeiValue || "").split(",").map(item => item.trim()).filter(Boolean);
+        const imeis = sortIdsDescending(
+            (imeiValue || "").split(",").map(item => item.trim()).filter(Boolean)
+        );
 
         if (imeis.length === 0) {
             return [];
@@ -58,7 +66,7 @@ router.get("/", async (req, res) => {
 
     try {
         const [rows] = await pool.query(
-            "SELECT id, receiver_name FROM custom_push_api ORDER BY receiver_name"
+            "SELECT id, receiver_name FROM custom_push_api ORDER BY id ASC"
         );
 
         return res.json({
