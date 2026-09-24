@@ -3,11 +3,16 @@ const addUserBtn = document.getElementById("addUser");
 const removeLastBtn = document.getElementById("removeLast");
 const clearBtn = document.getElementById("clearBtn");
 const saveBtn = document.getElementById("saveBtn");
-const receiver = document.getElementById("receiver");
+const receiverDropdown = document.getElementById("receiverDropdown");
+const receiverTrigger = document.getElementById("receiverTrigger");
+const receiverLabel = document.getElementById("receiverLabel");
+const receiverPanel = document.getElementById("receiverPanel");
 const mappedHeading = document.getElementById("mappedHeading");
 
 let users = [];
 let currentType = "user";
+let receivers = [];
+let selectedReceiverId = "";
 const suggestionTimers = {};
 const suggestionCache = {};
 
@@ -30,18 +35,17 @@ function renderUsers() {
         row.innerHTML = `
         <div class="user-number">${index + 1}</div>
 
-        <div>
+        <div class="user-input-wrap">
             <input
                 class="user-input"
                 type="text"
                 value="${escapeHtml(user.label ?? "")}"
                 placeholder="Search / enter user"
                 data-index="${index}"
-                list="suggestions-${index}"
                 autocomplete="off"
                 aria-label="Mapped user ${index + 1}"
             >
-            <datalist id="suggestions-${index}"></datalist>
+            <div class="user-suggestion-panel" id="suggestions-${index}" role="listbox"></div>
         </div>
 
         <button
@@ -67,6 +71,17 @@ function renderUsers() {
             const query = label.trim();
             if (query.length > 3) {
                 updateSuggestions(index, query);
+            } else {
+                closeSuggestions(index);
+            }
+
+            highlightDuplicates();
+        });
+
+        input.addEventListener("focus", event => {
+            const index = event.target.dataset.index;
+            if (suggestionCache[index]?.length) {
+                openSuggestions(index);
             }
         });
     });
@@ -78,6 +93,8 @@ function renderUsers() {
             renderUsers();
         });
     });
+
+    highlightDuplicates();
 }
 
 function escapeHtml(value) {
@@ -116,6 +133,46 @@ function resolveRawValue(user) {
     return label;
 }
 
+/*
+|--------------------------------------------------------------------------
+| Find rows whose resolved raw value repeats elsewhere in the list.
+|--------------------------------------------------------------------------
+*/
+
+function findDuplicateIndexes() {
+    const seen = new Map();
+    const duplicates = new Set();
+
+    users.forEach((user, index) => {
+        const raw = resolveRawValue(user);
+
+        if (!raw) {
+            return;
+        }
+
+        const key = raw.toLowerCase();
+
+        if (seen.has(key)) {
+            duplicates.add(seen.get(key));
+            duplicates.add(index);
+        } else {
+            seen.set(key, index);
+        }
+    });
+
+    return duplicates;
+}
+
+function highlightDuplicates() {
+    const duplicates = findDuplicateIndexes();
+
+    document.querySelectorAll(".user-input").forEach(input => {
+        input.classList.toggle("duplicate", duplicates.has(Number(input.dataset.index)));
+    });
+
+    return duplicates;
+}
+
 function updateSuggestions(index, query) {
     clearTimeout(suggestionTimers[index]);
 
@@ -128,21 +185,67 @@ function updateSuggestions(index, query) {
                 return;
             }
 
-            const datalist = document.getElementById(`suggestions-${index}`);
-            if (!datalist) {
-                return;
-            }
-
             suggestionCache[index] = data.results;
-
-            datalist.innerHTML = data.results
-                .map(item => `<option value="${escapeHtml(item.label)}"></option>`)
-                .join("");
+            renderSuggestionOptions(index);
+            openSuggestions(index);
 
         } catch (error) {
             console.error("Failed to fetch suggestions:", error);
         }
     }, 250);
+}
+
+function renderSuggestionOptions(index) {
+    const panel = document.getElementById(`suggestions-${index}`);
+
+    if (!panel) {
+        return;
+    }
+
+    const results = suggestionCache[index] || [];
+
+    if (results.length === 0) {
+        panel.innerHTML = `<div class="user-suggestion-empty">No matches found</div>`;
+        return;
+    }
+
+    panel.innerHTML = results
+        .map((item, itemIndex) => `
+        <div class="user-suggestion-option" data-item="${itemIndex}">${escapeHtml(item.label)}</div>
+    `)
+        .join("");
+
+    panel.querySelectorAll(".user-suggestion-option").forEach(option => {
+        option.addEventListener("click", () => {
+            const item = suggestionCache[index]?.[Number(option.dataset.item)];
+
+            if (!item) {
+                return;
+            }
+
+            users[index] = { value: item.value, label: item.label };
+
+            const input = document.querySelector(`.user-input[data-index="${index}"]`);
+            if (input) {
+                input.value = item.label;
+            }
+
+            closeSuggestions(index);
+            highlightDuplicates();
+        });
+    });
+}
+
+function openSuggestions(index) {
+    document.getElementById(`suggestions-${index}`)?.classList.add("open");
+}
+
+function closeSuggestions(index) {
+    document.getElementById(`suggestions-${index}`)?.classList.remove("open");
+}
+
+function closeAllSuggestions() {
+    document.querySelectorAll(".user-suggestion-panel.open").forEach(panel => panel.classList.remove("open"));
 }
 
 async function loadReceivers() {
@@ -154,12 +257,8 @@ async function loadReceivers() {
             return;
         }
 
-        data.receivers.forEach(({ id, receiver_name }) => {
-            const option = document.createElement("option");
-            option.value = id;
-            option.textContent = receiver_name;
-            receiver.appendChild(option);
-        });
+        receivers = data.receivers;
+        renderReceiverOptions();
 
     } catch (error) {
         console.error("Failed to load receivers:", error);
@@ -190,8 +289,48 @@ async function loadReceiverMapping(id) {
     }
 }
 
-receiver.addEventListener("change", () => {
-    if (!receiver.value) {
+/*
+|--------------------------------------------------------------------------
+| Custom animated, scrollable receiver dropdown (replaces native <select>)
+|--------------------------------------------------------------------------
+*/
+
+function renderReceiverOptions() {
+    receiverPanel.innerHTML = receivers
+        .map(({ id, receiver_name }) => `
+        <div
+            class="custom-select-option${String(id) === String(selectedReceiverId) ? " selected" : ""}"
+            role="option"
+            data-id="${id}"
+        >${escapeHtml(receiver_name)}</div>
+    `)
+        .join("");
+
+    receiverPanel.querySelectorAll(".custom-select-option").forEach(option => {
+        option.addEventListener("click", () => {
+            selectReceiver(option.dataset.id, option.textContent);
+        });
+    });
+}
+
+function openReceiverDropdown() {
+    receiverDropdown.classList.add("open");
+    receiverTrigger.setAttribute("aria-expanded", "true");
+}
+
+function closeReceiverDropdown() {
+    receiverDropdown.classList.remove("open");
+    receiverTrigger.setAttribute("aria-expanded", "false");
+}
+
+function selectReceiver(id, name) {
+    selectedReceiverId = id || "";
+    receiverLabel.textContent = id ? name : "Select receiver";
+
+    renderReceiverOptions();
+    closeReceiverDropdown();
+
+    if (!selectedReceiverId) {
         currentType = "user";
         mappedHeading.textContent = "Users";
         users = [];
@@ -199,7 +338,28 @@ receiver.addEventListener("change", () => {
         return;
     }
 
-    loadReceiverMapping(receiver.value);
+    loadReceiverMapping(selectedReceiverId);
+}
+
+receiverTrigger.addEventListener("click", () => {
+    receiverDropdown.classList.contains("open") ? closeReceiverDropdown() : openReceiverDropdown();
+});
+
+document.addEventListener("click", event => {
+    if (!receiverDropdown.contains(event.target)) {
+        closeReceiverDropdown();
+    }
+
+    if (!event.target.closest(".user-input-wrap")) {
+        closeAllSuggestions();
+    }
+});
+
+document.addEventListener("keydown", event => {
+    if (event.key === "Escape") {
+        closeReceiverDropdown();
+        closeAllSuggestions();
+    }
 });
 
 
@@ -219,7 +379,9 @@ removeLastBtn.addEventListener("click", () => {
 });
 
 clearBtn.addEventListener("click", () => {
-    receiver.value = "";
+    selectedReceiverId = "";
+    receiverLabel.textContent = "Select receiver";
+    renderReceiverOptions();
     currentType = "user";
     mappedHeading.textContent = "Users";
     users = [];
@@ -227,9 +389,14 @@ clearBtn.addEventListener("click", () => {
 });
 
 saveBtn.addEventListener("click", async () => {
-    if (!receiver.value) {
+    if (!selectedReceiverId) {
         alert("Please select a receiver.");
-        receiver.focus();
+        receiverTrigger.focus();
+        return;
+    }
+
+    if (highlightDuplicates().size > 0) {
+        alert("Duplicate values found. Please resolve the highlighted fields before saving.");
         return;
     }
 
@@ -243,7 +410,7 @@ saveBtn.addEventListener("click", async () => {
     }
 
     try {
-        const response = await fetch(`/api/receivers/${receiver.value}`, {
+        const response = await fetch(`/api/receivers/${selectedReceiverId}`, {
             method: "PUT",
             headers: { "Content-Type": "application/json" },
             body: JSON.stringify({

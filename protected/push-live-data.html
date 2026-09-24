@@ -39,13 +39,19 @@
             <section class="content">
 
                 <div class="receiver-row">
-                    <label for="receiver">
+                    <label for="receiverTrigger">
                         Select Receiver <span class="required">*</span>
                     </label>
 
-                    <select id="receiver">
-                        <option value="">Select receiver</option>
-                    </select>
+                    <div class="custom-select" id="receiverDropdown">
+                        <button type="button" class="custom-select-trigger" id="receiverTrigger" aria-haspopup="listbox"
+                            aria-expanded="false">
+                            <span id="receiverLabel">Select receiver</span>
+                            <span class="custom-select-arrow">▾</span>
+                        </button>
+
+                        <div class="custom-select-panel" id="receiverPanel" role="listbox" tabindex="-1"></div>
+                    </div>
                 </div>
 
                 <section class="mapped-card">
@@ -61,7 +67,7 @@
 
                     <div class="table-head">
                         <div>#</div>
-                        <div><span id="mappedHeading">Users</span></div>
+                        <div>User</div>
                         <div></div>
                     </div>
 
