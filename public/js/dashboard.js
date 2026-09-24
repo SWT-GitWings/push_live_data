@@ -7,6 +7,8 @@ const receiver = document.getElementById("receiver");
 const mappedHeading = document.getElementById("mappedHeading");
 
 let users = [];
+let currentType = "user";
+const suggestionTimers = {};
 
 function renderUsers() {
     userList.innerHTML = "";
@@ -34,8 +36,11 @@ function renderUsers() {
                 value="${escapeHtml(user)}"
                 placeholder="Search / enter user"
                 data-index="${index}"
+                list="suggestions-${index}"
+                autocomplete="off"
                 aria-label="Mapped user ${index + 1}"
             >
+            <datalist id="suggestions-${index}"></datalist>
         </div>
 
         <button
@@ -52,7 +57,13 @@ function renderUsers() {
 
     document.querySelectorAll(".user-input").forEach(input => {
         input.addEventListener("input", event => {
-            users[event.target.dataset.index] = event.target.value;
+            const index = event.target.dataset.index;
+            users[index] = event.target.value;
+
+            const query = event.target.value.trim();
+            if (query.length > 3) {
+                updateSuggestions(index, query);
+            }
         });
     });
 
@@ -72,6 +83,33 @@ function escapeHtml(value) {
         .replaceAll(">", "&gt;")
         .replaceAll('"', "&quot;")
         .replaceAll("'", "&#039;");
+}
+
+function updateSuggestions(index, query) {
+    clearTimeout(suggestionTimers[index]);
+
+    suggestionTimers[index] = setTimeout(async () => {
+        try {
+            const response = await fetch(`/api/receivers/search/${currentType}?q=${encodeURIComponent(query)}`);
+            const data = await response.json();
+
+            if (!data.success) {
+                return;
+            }
+
+            const datalist = document.getElementById(`suggestions-${index}`);
+            if (!datalist) {
+                return;
+            }
+
+            datalist.innerHTML = data.results
+                .map(item => `<option value="${escapeHtml(item.label)}"></option>`)
+                .join("");
+
+        } catch (error) {
+            console.error("Failed to fetch suggestions:", error);
+        }
+    }, 250);
 }
 
 async function loadReceivers() {
@@ -107,6 +145,7 @@ async function loadReceiverMapping(id) {
         const { type_of_data, mapped_display } = data.receiver;
         const isUser = type_of_data === "user";
 
+        currentType = type_of_data;
         mappedHeading.textContent = isUser ? "Users" : "IMEI";
 
         users = mapped_display || [];
@@ -120,6 +159,7 @@ async function loadReceiverMapping(id) {
 
 receiver.addEventListener("change", () => {
     if (!receiver.value) {
+        currentType = "user";
         mappedHeading.textContent = "Users";
         users = [];
         renderUsers();
@@ -147,6 +187,7 @@ removeLastBtn.addEventListener("click", () => {
 
 clearBtn.addEventListener("click", () => {
     receiver.value = "";
+    currentType = "user";
     mappedHeading.textContent = "Users";
     users = [];
     renderUsers();

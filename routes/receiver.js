@@ -86,6 +86,60 @@ router.get("/", async (req, res) => {
 
 /*
 |--------------------------------------------------------------------------
+| Search users / imeis for autocomplete suggestions (min 4 characters)
+|--------------------------------------------------------------------------
+*/
+
+router.get("/search/:type", async (req, res) => {
+
+    const { type } = req.params;
+    const query = (req.query.q || "").trim();
+
+    if (query.length <= 3) {
+        return res.json({ success: true, results: [] });
+    }
+
+    try {
+        const like = `%${query}%`;
+
+        if (type === "user") {
+            const [rows] = await pool.query(
+                "SELECT id, name, email FROM users WHERE name LIKE ? OR email LIKE ? LIMIT 10",
+                [like, like]
+            );
+
+            return res.json({
+                success: true,
+                results: rows.map(row => ({ value: row.id, label: `${row.name}(${row.email})` }))
+            });
+        }
+
+        if (type === "imei") {
+            const [rows] = await pool.query(
+                "SELECT vehicle_name, deviceimei FROM live_data WHERE vehicle_name LIKE ? OR deviceimei LIKE ? LIMIT 10",
+                [like, like]
+            );
+
+            return res.json({
+                success: true,
+                results: rows.map(row => ({ value: row.deviceimei, label: `${row.vehicle_name}(${row.deviceimei})` }))
+            });
+        }
+
+        return res.status(400).json({ success: false, message: "Invalid search type." });
+
+    } catch (error) {
+        console.error("Search suggestions error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to fetch suggestions."
+        });
+    }
+});
+
+/*
+|--------------------------------------------------------------------------
 | Get receiver mapping details
 |--------------------------------------------------------------------------
 */
