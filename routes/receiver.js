@@ -31,7 +31,7 @@ async function resolveMappedDisplay(typeOfData, userValue, imeiValue) {
 
         const userMap = new Map(userRows.map(user => [String(user.id), `${user.name}(${user.email})`]));
 
-        return ids.map(id => userMap.get(String(id)) || id);
+        return ids.map(id => ({ value: id, label: userMap.get(String(id)) || id }));
     }
 
     if (typeOfData === "imei") {
@@ -50,7 +50,7 @@ async function resolveMappedDisplay(typeOfData, userValue, imeiValue) {
 
         const imeiMap = new Map(imeiRows.map(row => [String(row.deviceimei), `${row.vehicle_name}(${row.deviceimei})`]));
 
-        return imeis.map(imei => imeiMap.get(String(imei)) || imei);
+        return imeis.map(imei => ({ value: imei, label: imeiMap.get(String(imei)) || imei }));
     }
 
     return [];
@@ -179,6 +179,57 @@ router.get("/:id", async (req, res) => {
         return res.status(500).json({
             success: false,
             message: "Failed to fetch receiver details."
+        });
+    }
+});
+
+/*
+|--------------------------------------------------------------------------
+| Update receiver mapping (comma-separated user ids or device imeis)
+|--------------------------------------------------------------------------
+*/
+
+router.put("/:id", async (req, res) => {
+
+    const { type_of_data, values } = req.body;
+
+    if (type_of_data !== "user" && type_of_data !== "imei") {
+        return res.status(400).json({
+            success: false,
+            message: "Invalid type_of_data."
+        });
+    }
+
+    const joinedValues = Array.isArray(values)
+        ? values.map(value => String(value).trim()).filter(Boolean).join(",")
+        : "";
+
+    try {
+        const column = type_of_data === "user" ? "user_value" : "imei_value";
+
+        const [result] = await pool.query(
+            `UPDATE custom_push_api SET ${column} = ? WHERE id = ?`,
+            [joinedValues, req.params.id]
+        );
+
+        if (result.affectedRows === 0) {
+            return res.status(404).json({
+                success: false,
+                message: "Receiver not found."
+            });
+        }
+
+        return res.json({
+            success: true,
+            message: "Receiver mapping updated."
+        });
+
+    } catch (error) {
+        console.error("Update receiver mapping error:", error);
+
+        return res.status(500).json({
+            success: false,
+            message: "Failed to update receiver mapping."
         });
     }
 });

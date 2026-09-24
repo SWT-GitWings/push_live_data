@@ -9,6 +9,7 @@ const mappedHeading = document.getElementById("mappedHeading");
 let users = [];
 let currentType = "user";
 const suggestionTimers = {};
+const suggestionCache = {};
 
 function renderUsers() {
     userList.innerHTML = "";
@@ -33,7 +34,7 @@ function renderUsers() {
             <input
                 class="user-input"
                 type="text"
-                value="${escapeHtml(user)}"
+                value="${escapeHtml(user.label ?? "")}"
                 placeholder="Search / enter user"
                 data-index="${index}"
                 list="suggestions-${index}"
@@ -58,9 +59,12 @@ function renderUsers() {
     document.querySelectorAll(".user-input").forEach(input => {
         input.addEventListener("input", event => {
             const index = event.target.dataset.index;
-            users[index] = event.target.value;
+            const label = event.target.value;
+            const matched = suggestionCache[index]?.find(item => item.label === label);
 
-            const query = event.target.value.trim();
+            users[index] = { value: matched ? matched.value : null, label };
+
+            const query = label.trim();
             if (query.length > 3) {
                 updateSuggestions(index, query);
             }
@@ -85,6 +89,33 @@ function escapeHtml(value) {
         .replaceAll("'", "&#039;");
 }
 
+/*
+|--------------------------------------------------------------------------
+| Resolve the raw id/imei to persist for a mapped row.
+| Falls back to the trailing "(...)" segment for imei (label already holds
+| the raw imei), or the typed text itself when no suggestion was selected.
+|--------------------------------------------------------------------------
+*/
+
+function resolveRawValue(user) {
+    const label = (user.label || "").trim();
+
+    if (!label) {
+        return null;
+    }
+
+    if (user.value) {
+        return String(user.value).trim();
+    }
+
+    const match = label.match(/\(([^()]+)\)\s*$/);
+    if (currentType === "imei" && match) {
+        return match[1].trim();
+    }
+
+    return label;
+}
+
 function updateSuggestions(index, query) {
     clearTimeout(suggestionTimers[index]);
 
@@ -101,6 +132,8 @@ function updateSuggestions(index, query) {
             if (!datalist) {
                 return;
             }
+
+            suggestionCache[index] = data.results;
 
             datalist.innerHTML = data.results
                 .map(item => `<option value="${escapeHtml(item.label)}"></option>`)
@@ -171,7 +204,7 @@ receiver.addEventListener("change", () => {
 
 
 addUserBtn.addEventListener("click", () => {
-    users.unshift("");
+    users.unshift({ value: null, label: "" });
     renderUsers();
 
     const inputs = document.querySelectorAll(".user-input");
@@ -193,28 +226,45 @@ clearBtn.addEventListener("click", () => {
     renderUsers();
 });
 
-saveBtn.addEventListener("click", () => {
+saveBtn.addEventListener("click", async () => {
     if (!receiver.value) {
         alert("Please select a receiver.");
         receiver.focus();
         return;
     }
 
-    const validUsers = users
-        .map(user => user.trim())
+    const validValues = users
+        .map(resolveRawValue)
         .filter(Boolean);
 
-    if (validUsers.length === 0) {
-        alert("Please add at least one mapped user.");
+    if (validValues.length === 0) {
+        alert("Please add at least one mapped value.");
         return;
     }
 
-    console.log({
-        receiver: receiver.value,
-        mappedUsers: validUsers
-    });
+    try {
+        const response = await fetch(`/api/receivers/${receiver.value}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                type_of_data: currentType,
+                values: validValues
+            })
+        });
 
-    alert("Push Live Data configuration saved.");
+        const data = await response.json();
+
+        if (!data.success) {
+            alert(data.message || "Failed to save Push Live Data configuration.");
+            return;
+        }
+
+        alert("Push Live Data configuration saved.");
+
+    } catch (error) {
+        console.error("Failed to save receiver mapping:", error);
+        alert("Failed to save Push Live Data configuration.");
+    }
 });
 
 renderUsers();
