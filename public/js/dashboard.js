@@ -4,16 +4,9 @@ const removeLastBtn = document.getElementById("removeLast");
 const clearBtn = document.getElementById("clearBtn");
 const saveBtn = document.getElementById("saveBtn");
 const receiver = document.getElementById("receiver");
+const mappedHeading = document.getElementById("mappedHeading");
 
-let users = [
-    "Sam",
-    "Sam",
-    "Sam",
-    "Sam",
-    "Sam",
-    "Sam",
-    "Sam"
-];
+let users = [];
 
 function renderUsers() {
     userList.innerHTML = "";
@@ -90,10 +83,10 @@ async function loadReceivers() {
             return;
         }
 
-        data.receivers.forEach(name => {
+        data.receivers.forEach(({ id, receiver_name }) => {
             const option = document.createElement("option");
-            option.value = name;
-            option.textContent = name;
+            option.value = id;
+            option.textContent = receiver_name;
             receiver.appendChild(option);
         });
 
@@ -101,6 +94,40 @@ async function loadReceivers() {
         console.error("Failed to load receivers:", error);
     }
 }
+
+async function loadReceiverMapping(id) {
+    try {
+        const response = await fetch(`/api/receivers/${id}`);
+        const data = await response.json();
+
+        if (!data.success) {
+            return;
+        }
+
+        const { type_of_data, mapped_display } = data.receiver;
+        const isUser = type_of_data === "user";
+
+        mappedHeading.textContent = isUser ? "Mapped Users" : "IMEI";
+
+        users = mapped_display || [];
+
+        renderUsers();
+
+    } catch (error) {
+        console.error("Failed to load receiver mapping:", error);
+    }
+}
+
+receiver.addEventListener("change", () => {
+    if (!receiver.value) {
+        mappedHeading.textContent = "Mapped Users";
+        users = [];
+        renderUsers();
+        return;
+    }
+
+    loadReceiverMapping(receiver.value);
+});
 
 
 addUserBtn.addEventListener("click", () => {
@@ -120,6 +147,7 @@ removeLastBtn.addEventListener("click", () => {
 
 clearBtn.addEventListener("click", () => {
     receiver.value = "";
+    mappedHeading.textContent = "Mapped Users";
     users = [];
     renderUsers();
 });
