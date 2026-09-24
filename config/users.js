@@ -18,6 +18,13 @@ const users = [
         password: process.env.USER2_PASSWORD,
         name: process.env.USER2_NAME,
         status: Number(process.env.USER2_STATUS)
+    },
+    {
+        id: Number(process.env.USER3_ID),
+        username: process.env.USER3_USERNAME,
+        password: process.env.USER3_PASSWORD,
+        name: process.env.USER3_NAME,
+        status: Number(process.env.USER3_STATUS)
     }
 ];
 

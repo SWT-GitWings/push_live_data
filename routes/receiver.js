@@ -204,12 +204,15 @@ router.put("/:id", async (req, res) => {
         ? values.map(value => String(value).trim()).filter(Boolean).join(",")
         : "";
 
+    const updatedBy = req.session.user.id;
+    const ipAddress = (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.socket.remoteAddress;
+
     try {
         const column = type_of_data === "user" ? "user_value" : "imei_value";
 
         const [result] = await pool.query(
-            `UPDATE custom_push_api SET ${column} = ? WHERE id = ?`,
-            [joinedValues, req.params.id]
+            `UPDATE custom_push_api SET ${column} = ?, updated_by = ?, ip_address = ? WHERE id = ?`,
+            [joinedValues, updatedBy, ipAddress, req.params.id]
         );
 
         if (result.affectedRows === 0) {
