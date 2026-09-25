@@ -9,6 +9,8 @@ const receiverLabel = document.getElementById("receiverLabel");
 const receiverPanel = document.getElementById("receiverPanel");
 const mappedHeading = document.getElementById("mappedHeading");
 const suggestionPanel = document.getElementById("sharedSuggestionPanel");
+const headerUsername = document.getElementById("headerUsername");
+const logoutBtn = document.getElementById("logoutBtn");
 
 let users = [];
 let currentType = "user";
@@ -508,3 +510,39 @@ saveBtn.addEventListener("click", async () => {
 
 renderUsers();
 loadReceivers();
+loadCurrentUser();
+
+/*
+|--------------------------------------------------------------------------
+| Header: current user + logout
+|--------------------------------------------------------------------------
+*/
+
+async function loadCurrentUser() {
+  try {
+    const response = await fetch("/api/auth/me");
+    const data = await response.json();
+
+    if (!data.success) {
+      return;
+    }
+
+    headerUsername.textContent = data.user.name || data.user.username || "";
+  } catch (error) {
+    console.error("Failed to load current user:", error);
+  }
+}
+
+logoutBtn.addEventListener("click", async () => {
+  logoutBtn.disabled = true;
+
+  try {
+    const response = await fetch("/api/auth/logout", { method: "POST" });
+    const data = await response.json();
+
+    window.location.href = data.redirect || "/login";
+  } catch (error) {
+    console.error("Logout failed:", error);
+    logoutBtn.disabled = false;
+  }
+});

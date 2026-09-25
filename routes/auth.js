@@ -75,6 +75,29 @@ router.post("/login", async (req, res) => {
 
 /*
 |--------------------------------------------------------------------------
+| Current session user
+|--------------------------------------------------------------------------
+*/
+
+router.get("/me", (req, res) => {
+
+    if (!req.session.user) {
+        return res.status(401).json({
+            success: false,
+            message: "Please log in to continue."
+        });
+    }
+
+    const { username, name } = req.session.user;
+
+    return res.json({
+        success: true,
+        user: { username, name }
+    });
+});
+
+/*
+|--------------------------------------------------------------------------
 | Logout
 |--------------------------------------------------------------------------
 */
