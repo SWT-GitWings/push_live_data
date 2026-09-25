@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mines Push - Sproutwings</title>
+
+    <link rel="stylesheet" href="/public/css/dashboard.css">
+    <link rel="stylesheet" href="/public/css/mines.css">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+</head>
+
+<body>
+    <div class="page">
+        <main class="app">
+
+            <header class="header">
+                <div class="brand">
+                    <img src="https://www.sproutwings.in/assets/Sproutwings-Black5-jZNzq4K0.png" alt="Sproutwings">
+                </div>
+
+                <div class="page-title">
+                    <img class="upload-icon" src="/public/images/growth_arrow_icon.svg" alt="">
+                    <span>Mines Push</span>
+
+                    <div class="user-info">
+                        <span class="username" id="headerUsername"></span>
+                        <button class="logout-btn" id="logoutBtn" type="button" title="Logout">
+                            <img class="logout-icon" src="/public/images/logout_icon.svg" alt="">
+                            Logout
+                        </button>
+                    </div>
+                </div>
+            </header>
+
+            <nav class="tabs" aria-label="Main navigation">
+                <a class="tab" href="/dashboard">
+                    <img class="tab-icon" src="/public/images/cloud_upload_red.svg" alt="">
+                    Push Live Data
+                </a>
+
+                <a class="tab active" href="/mines-push">
+                    <img class="tab-icon" src="/public/images/growth_arrow_icon.svg" alt="">
+                    Mines Push
+                </a>
+            </nav>
+
+            <section class="content mines-content">
+
+                <section class="form-card">
+                    <form id="mineForm">
+                        <div class="form-grid">
+
+                            <div class="field">
+                                <label for="imei">Search IMEI <span class="required">*</span></label>
+                                <div class="user-input-wrap">
+                                    <input id="imei" class="user-input" type="text" placeholder="Enter IMEI number"
+                                        maxlength="20" autocomplete="off" required>
+                                </div>
+                            </div>
+
+                            <div class="field">
+                                <label for="latitude">Latitude <span class="required">*</span></label>
+                                <input id="latitude" class="user-input" type="text" placeholder="e.g. 12.9716" required>
+                            </div>
+
+                            <div class="field">
+                                <label for="longitude">Longitude <span class="required">*</span></label>
+                                <input id="longitude" class="user-input" type="text" placeholder="e.g. 77.5946"
+                                    required>
+                            </div>
+
+                            <div class="field">
+                                <label for="startTime">Start Time <span class="required">*</span></label>
+                                <input id="startTime" class="user-input" type="datetime-local" required>
+                            </div>
+
+                            <div class="field">
+                                <label for="endTime">End Time <span class="required">*</span></label>
+                                <input id="endTime" class="user-input" type="datetime-local" required>
+                            </div>
+
+                            <div class="field">
+                                <label for="activeStatus">Active Status <span class="required">*</span></label>
+                                <select id="activeStatus">
+                                    <option value="1">Active</option>
+                                    <option value="0">Inactive</option>
+                                </select>
+                            </div>
+
+                        </div>
+
+                        <div class="footer">
+                            <button type="submit" class="action-btn save" id="saveBtn">
+                                <img class="tab-icon" src="/public/images/save_icon.svg" alt=""> Save
+                            </button>
+                            <button type="button" class="action-btn clear" id="resetBtn">
+                                <img class="tab-icon" src="/public/images/reset_icon.svg" alt=""> Reset
+                            </button>
+                        </div>
+                    </form>
+                </section>
+
+                <section class="records-card">
+                    <div class="records-head">
+                        <div class="records-title">
+                            <h2>Saved Mines Push Records</h2>
+                        </div>
+
+                        <div class="tools">
+                            <div class="search-input-wrap">
+                                <input id="search" class="user-input" type="search" placeholder="Search IMEI...">
+                            </div>
+
+                            <select id="perPage" class="per-page">
+                                <option>10</option>
+                                <option>25</option>
+                                <option>50</option>
+                            </select>
+
+                            <span class="per-page-label">records per page</span>
+                        </div>
+                    </div>
+
+                    <div class="table-wrap">
+                        <table>
+                            <thead>
+                                <tr>
+                                    <th>#</th>
+                                    <th>IMEI</th>
+                                    <th>Latitude</th>
+                                    <th>Longitude</th>
+                                    <th>Start Time</th>
+                                    <th>End Time</th>
+                                    <th>Active Status</th>
+                                    <th>Action</th>
+                                </tr>
+                            </thead>
+
+                            <tbody id="recordsBody"></tbody>
+                        </table>
+                    </div>
+
+                    <div class="table-footer">
+                        <span id="recordInfo">Showing 0 records</span>
+
+                        <div class="pagination">
+                            <button class="page-btn" type="button">Previous</button>
+                            <button class="page-btn active" type="button">1</button>
+                            <button class="page-btn" type="button">Next</button>
+                        </div>
+                    </div>
+                </section>
+
+            </section>
+        </main>
+    </div>
+
+    <div class="user-suggestion-panel" id="sharedSuggestionPanel" role="listbox"></div>
+
+    <script src="/public/js/header.js"></script>
+    <script src="/public/js/mines.js"></script>
+</body>
+
+</html>

@@ -6,6 +6,7 @@ const session = require("express-session");
 
 const authRoutes = require("./routes/auth");
 const receiverRoutes = require("./routes/receiver");
+const minesPushRoutes = require("./routes/pushData");
 const authMiddleware = require("./middleware/authMiddleware");
 
 const app = express();
@@ -57,6 +58,7 @@ app.use(
 
 app.use("/api/auth", authRoutes);
 app.use("/api/receivers", authMiddleware, receiverRoutes);
+app.use("/api/mines", authMiddleware, minesPushRoutes);
 
 /*
 |--------------------------------------------------------------------------
@@ -84,6 +86,12 @@ app.get("/login", (req, res) => {
 app.get("/dashboard", authMiddleware, (req, res) => {
     res.sendFile(
         path.join(__dirname, "protected", "push-live-data.html")
+    );
+});
+
+app.get("/mines-push", authMiddleware, (req, res) => {
+    res.sendFile(
+        path.join(__dirname, "protected", "mines-push-data.html")
     );
 });
 
