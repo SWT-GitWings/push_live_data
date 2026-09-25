@@ -8,7 +8,7 @@ const loginButton = form.querySelector(".login-btn");
 togglePassword.addEventListener("click", () => {
     const isPassword = password.type === "password";
     password.type = isPassword ? "text" : "password";
-    togglePassword.textContent = isPassword ? "○" : "◉";
+    togglePassword.innerHTML = isPassword ? '<i class="fa-solid fa-eye"></i>' : '<i class="fa-solid fa-eye-slash"></i>';
     togglePassword.setAttribute(
         "aria-label",
         isPassword ? "Hide password" : "Show password"

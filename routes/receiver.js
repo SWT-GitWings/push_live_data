@@ -5,18 +5,19 @@ const router = express.Router();
 /*
 |--------------------------------------------------------------------------
 | Resolve raw user ids / device imeis into readable "Name(Email)" or
-| "VehicleName(IMEI)" labels, preserving the original stored order.
+| "VehicleName(IMEI)" labels, reversing the stored comma-separated order
+| (last received value shown first).
 |--------------------------------------------------------------------------
 */
 
-function sortIdsDescending(ids) {
-    return [...ids].sort((a, b) => (BigInt(a) > BigInt(b) ? -1 : 1));
+function reverseIds(ids) {
+    return [...ids].reverse();
 }
 
 async function resolveMappedDisplay(typeOfData, userValue, imeiValue) {
 
     if (typeOfData === "user") {
-        const ids = sortIdsDescending(
+        const ids = reverseIds(
             (userValue || "").split(",").map(item => item.trim()).filter(Boolean)
         );
 
@@ -35,7 +36,7 @@ async function resolveMappedDisplay(typeOfData, userValue, imeiValue) {
     }
 
     if (typeOfData === "imei") {
-        const imeis = sortIdsDescending(
+        const imeis = reverseIds(
             (imeiValue || "").split(",").map(item => item.trim()).filter(Boolean)
         );
 
