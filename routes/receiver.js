@@ -14,44 +14,64 @@ function reverseIds(ids) {
     return [...ids].reverse();
 }
 
-async function resolveMappedDisplay(typeOfData, userValue, imeiValue) {
+async function resolveMappedDisplay(typeOfData, userValue, imeiValue, userType) {
 
     if (typeOfData === "user") {
-        const ids = reverseIds(
-            (userValue || "").split(",").map(item => item.trim()).filter(Boolean)
-        );
+        const ids = reverseIds((userValue || "").split(",").map(item => item.trim()).filter(Boolean));
 
-        if (ids.length === 0) {
-            return [];
+        if (ids.length === 0) { return []; }
+
+        let query = `
+            SELECT id, name, email FROM users WHERE id IN (?) AND role_id = 6
+        `;
+
+        let params = [ids];
+
+        if (userType === 1) {
+            query += ` AND admin_id != ?`;
+            params.push(1);
+
+        } else if (userType === 2) {
+            query += ` AND admin_id = ?`;
+            params.push(1);
         }
 
-        const [userRows] = await pool.query(
-            "SELECT id, name, email FROM users WHERE id IN (?)",
-            [ids]
+        const [userRows] = await pool.query(query, params);
+
+        const userMap = new Map(
+            userRows.map(user => [
+                String(user.id),
+                `${user.name}(${user.email})`
+            ])
         );
 
-        const userMap = new Map(userRows.map(user => [String(user.id), `${user.name}(${user.email})`]));
-
-        return ids.map(id => ({ value: id, label: userMap.get(String(id)) || id }));
+        return ids.map(id => ({
+            value: id,
+            label: userMap.get(String(id)) || id
+        }));
     }
 
     if (typeOfData === "imei") {
-        const imeis = reverseIds(
-            (imeiValue || "").split(",").map(item => item.trim()).filter(Boolean)
-        );
+        const imeis = reverseIds((imeiValue || "").split(",").map(item => item.trim()).filter(Boolean));
 
-        if (imeis.length === 0) {
-            return [];
-        }
+        if (imeis.length === 0) { return []; }
 
         const [imeiRows] = await pool.query(
-            "SELECT vehicle_name, deviceimei FROM live_data WHERE deviceimei IN (?)",
+            `SELECT vehicle_name, deviceimei FROM live_data WHERE deviceimei IN (?)`,
             [imeis]
         );
 
-        const imeiMap = new Map(imeiRows.map(row => [String(row.deviceimei), `${row.vehicle_name}(${row.deviceimei})`]));
+        const imeiMap = new Map(
+            imeiRows.map(row => [
+                String(row.deviceimei),
+                `${row.vehicle_name}(${row.deviceimei})`
+            ])
+        );
 
-        return imeis.map(imei => ({ value: imei, label: imeiMap.get(String(imei)) || imei }));
+        return imeis.map(imei => ({
+            value: imei,
+            label: imeiMap.get(String(imei)) || imei
+        }));
     }
 
     return [];
@@ -64,11 +84,24 @@ async function resolveMappedDisplay(typeOfData, userValue, imeiValue) {
 */
 
 router.get("/", async (req, res) => {
-
     try {
-        const [rows] = await pool.query(
-            "SELECT id, receiver_name FROM custom_push_api ORDER BY id ASC"
-        );
+        const userType = req.session.user.type;
+
+        let query = `SELECT id, receiver_name FROM custom_push_api`;
+
+        let params = [];
+
+        if (userType === 2) {
+            query += ` WHERE admin_type = ?`;
+            params.push(1);
+        } else if (userType === 1) {
+            query += ` WHERE admin_type != ?`;
+            params.push(1);
+        }
+
+        query += ` ORDER BY id ASC`;
+
+        const [rows] = await pool.query(query, params);
 
         return res.json({
             success: true,
@@ -161,7 +194,7 @@ router.get("/:id", async (req, res) => {
         }
 
         const { receiver_name, type_of_data, user_value, imei_value } = rows[0];
-        const mappedDisplay = await resolveMappedDisplay(type_of_data, user_value, imei_value);
+        const mappedDisplay = await resolveMappedDisplay(type_of_data, user_value, imei_value, req.session.user.type);
 
         return res.json({
             success: true,
