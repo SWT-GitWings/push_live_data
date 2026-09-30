@@ -12,14 +12,14 @@ function getClientIp(req) {
     return (req.headers["x-forwarded-for"] || "").split(",")[0].trim() || req.socket.remoteAddress;
 }
 
-function isValidPayload({ imei, latitude, longitude, start_time, end_time }) {
+function isValidPayload({ imei, latitude, longitude, duration, push_interval }) {
     return Boolean(
         imei &&
         String(imei).trim() &&
         Number.isFinite(Number(latitude)) &&
         Number.isFinite(Number(longitude)) &&
-        start_time &&
-        end_time
+        Number.isFinite(Number(duration)) &&
+        Number.isFinite(Number(push_interval))
     );
 }
 
@@ -65,15 +65,19 @@ router.get("/", async (req, res) => {
 */
 
 router.post("/", async (req, res) => {
+    console.log("Request body:", req.body);
 
-    const { imei, latitude, longitude, start_time, end_time, active_status } = req.body;
+    const { imei, latitude, longitude, duration, push_interval, active_status } = req.body;
 
     if (!isValidPayload(req.body)) {
         return res.status(400).json({
             success: false,
-            message: "imei, latitude, longitude, start_time and end_time are required."
+            message: "imei, latitude, longitude, duration, and push_interval are required."
         });
     }
+
+    const start_time = new Date();
+    const end_time = new Date(start_time.getTime() + Number(duration) * 60000);
 
     const createdBy = req.session.user.id;
     const ipAddress = getClientIp(req);
@@ -81,14 +85,15 @@ router.post("/", async (req, res) => {
     try {
         const [result] = await pool.query(
             `INSERT INTO mines_offline_push_api
-                (imei, latitude, longitude, start_time, end_time, active_status, created_by, ip_address)
-             VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+                (imei, latitude, longitude, start_time, end_time, time_intervel, active_status, created_by, ip_address)
+             VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
             [
                 String(imei).trim(),
                 Number(latitude),
                 Number(longitude),
                 start_time,
                 end_time,
+                Number(push_interval),
                 active_status ? 1 : 0,
                 createdBy,
                 ipAddress
@@ -119,12 +124,14 @@ router.post("/", async (req, res) => {
 
 router.put("/:id", async (req, res) => {
 
-    const { imei, latitude, longitude, start_time, end_time, active_status } = req.body;
+    console.log("Update request body:", req.body);
+
+    const { imei, latitude, longitude, duration, push_interval, active_status } = req.body;
 
     if (!isValidPayload(req.body)) {
         return res.status(400).json({
             success: false,
-            message: "imei, latitude, longitude, start_time and end_time are required."
+            message: "imei, latitude, longitude, duration, and push_interval are required."
         });
     }
 
@@ -134,15 +141,12 @@ router.put("/:id", async (req, res) => {
     try {
         const [result] = await pool.query(
             `UPDATE mines_offline_push_api
-             SET imei = ?, latitude = ?, longitude = ?, start_time = ?, end_time = ?,
-                 active_status = ?, updated_by = ?, ip_address = ?
+             SET imei = ?, latitude = ?, longitude = ?, active_status = ?, updated_by = ?, updated_at = NOW(), ip_address = ?
              WHERE id = ?`,
             [
                 String(imei).trim(),
                 Number(latitude),
                 Number(longitude),
-                start_time,
-                end_time,
                 active_status ? 1 : 0,
                 updatedBy,
                 ipAddress,
@@ -194,7 +198,7 @@ router.patch("/:id/status", async (req, res) => {
 
     try {
         const [result] = await pool.query(
-            "UPDATE mines_offline_push_api SET active_status = ?, updated_by = ?, ip_address = ? WHERE id = ?",
+            "UPDATE mines_offline_push_api SET active_status = ?, updated_by = ?, updated_at = NOW(), ip_address = ? WHERE id = ?",
             [activeStatus, updatedBy, ipAddress, req.params.id]
         );
 

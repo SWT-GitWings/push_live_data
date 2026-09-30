@@ -170,10 +170,6 @@ window.addEventListener("resize", closeImeiSuggestions);
 |--------------------------------------------------------------------------
 */
 
-startTimeInput.addEventListener("change", () => {
-  endTimeInput.min = startTimeInput.value;
-});
-
 async function fetchRecords() {
   const query = searchInput.value.trim();
 
@@ -251,13 +247,18 @@ function editRecord(id) {
 
   editingId = id;
 
+  const startTime = new Date(record.start_time.replace(" ", "T"));
+  const endTime = new Date(record.end_time.replace(" ", "T"));
+  const duration = (endTime - startTime) / (1000 * 60);
+
   document.getElementById("imei").value = record.imei;
   document.getElementById("latitude").value = record.latitude;
   document.getElementById("longitude").value = record.longitude;
-  document.getElementById("startTime").value = toDatetimeLocal(record.start_time);
-  document.getElementById("endTime").value = toDatetimeLocal(record.end_time);
+  document.getElementById("duration").value = duration;
+  document.getElementById("duration").disabled = true;
+  document.getElementById("pushInterval").value = record.time_intervel;
+  document.getElementById("pushInterval").disabled = true;
   document.getElementById("activeStatus").value = record.active_status ? "1" : "0";
-  endTimeInput.min = startTimeInput.value;
 
   saveBtn.innerHTML = `<img class="tab-icon" src="/public/images/save_icon.svg" alt=""> Update`;
 
@@ -310,11 +311,11 @@ mineForm.addEventListener("submit", async (event) => {
   const imei = document.getElementById("imei").value.trim();
   const latitude = document.getElementById("latitude").value.trim();
   const longitude = document.getElementById("longitude").value.trim();
-  const startTime = document.getElementById("startTime").value;
-  const endTime = document.getElementById("endTime").value;
+  const duration = document.getElementById("duration").value;
+  const pushInterval = document.getElementById("pushInterval").value;
   const activeStatus = document.getElementById("activeStatus").value === "1" ? 1 : 0;
 
-  if (!imei || !latitude || !longitude || !startTime || !endTime) {
+  if (!imei || !latitude || !longitude || !duration || !pushInterval) {
     alert("Please fill all required fields.");
     return;
   }
@@ -324,10 +325,10 @@ mineForm.addEventListener("submit", async (event) => {
     return;
   }
 
-  const durationMinutes = getDurationMinutes(startTime, endTime);
+  const durationMinutes = getDurationMinutes(duration);
 
   if (durationMinutes < 0) {
-    alert("End time cannot be earlier than start time.");
+    alert("Duration cannot be negative.");
     return;
   }
 
@@ -349,8 +350,8 @@ mineForm.addEventListener("submit", async (event) => {
     imei,
     latitude: Number(latitude),
     longitude: Number(longitude),
-    start_time: toMysqlDatetime(startTime),
-    end_time: toMysqlDatetime(endTime),
+    duration: Number(duration),
+    push_interval: Number(pushInterval),
     active_status: activeStatus,
   };
 
@@ -359,15 +360,15 @@ mineForm.addEventListener("submit", async (event) => {
   try {
     const response = isEditing
       ? await fetch(`/api/mines/${editingId}`, {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        })
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      })
       : await fetch("/api/mines", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify(payload),
-        });
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
 
     const data = await response.json();
 
