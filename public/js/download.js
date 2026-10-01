@@ -215,7 +215,7 @@ document.addEventListener("keydown", (event) => {
     }
 });
 
-function downloadLog(data) {
+async function downloadLog(data) {
     const date = data.date.replace(/-/g, '_');
     const fileName = `${data.directory}_${data.imei}`.toLowerCase();
     const parameters = new URLSearchParams({
@@ -224,7 +224,27 @@ function downloadLog(data) {
         fileName
     });
 
-    window.location.href = `/api/download-log?${parameters.toString()}`;
+    try {
+        const response = await fetch(`/api/download-log?${parameters.toString()}`);
+
+        if (!response.ok) {
+            const message = (await response.text()).trim();
+            alert(message || `Unable to download the log (HTTP ${response.status}).`);
+            return;
+        }
+
+        const downloadUrl = URL.createObjectURL(await response.blob());
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+        console.error("Download log error:", error);
+        alert("Unable to download the log. Please try again.");
+    }
 }
 
 function downloadAll(data) {
