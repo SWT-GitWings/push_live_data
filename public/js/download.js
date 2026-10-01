@@ -45,7 +45,9 @@ function renderDeviceRows(devices, userId = "", name = "") {
                 <td>${index + 1}</td>
                 <td>${escapeHtml(`${device.vehicle_name}(${device.deviceimei})`)}</td>
                 <td class="status-cell"><span class="status status-${device.status.toLowerCase()}">${device.status}</span></td>
-                <td class="action"><button class="download" type="button" ${getDownloadData({ userId, imei: device.deviceimei, name })} title="Download ${escapeHtml(device.deviceimei)}">&darr;</button></td>
+                <td class="action">
+                ${selectedImeiDownload ? `<button class="download" type="button" ${getDownloadData({ userId, imei: device.deviceimei, name })} title="Download ${escapeHtml(device.deviceimei)}">&darr;</button>` : ""}
+                </td>
             </tr>`).join("")
         : "<tr><td colspan=\"4\">No devices found.</td></tr>";
 }
@@ -89,7 +91,7 @@ function renderUsers() {
                 <div class="user-avatar" aria-hidden="true">${escapeHtml(user.name.charAt(0).toUpperCase())}</div>
                 <div class="user-name">${escapeHtml(user.name)}</div>
                 <div class="count">${user.devices.length} Devices</div>
-                <button class="all" type="button" ${getDownloadData({ userId: user.id, imei: user.devices.map((device) => device.deviceimei).join(","), name: user.name })}><span>Download All</span></button>
+                ${selectedUserDownload ? `<button class="all" type="button" ${getDownloadData({ userId: user.id, imei: user.devices.map((device) => device.deviceimei).join(","), name: user.name })}><span>Download All</span></button>` : ""}
             </div>
             <div class="receiver-values" data-values="${user.id}">
                 ${renderDeviceTable(user.devices, user.id, user.name)}
@@ -116,7 +118,7 @@ function renderImeiReceiver() {
                 <div class="user-avatar" aria-hidden="true">R</div>
                 <div class="user-name">${escapeHtml(selectedReceiverName)}</div>
                 <div class="count">${mappedImeiDevices.length} Devices</div>
-                <button class="all" type="button" ${getDownloadData({ userId: mappedImeiDevices.map((device) => device.user_id).filter(Boolean).join(","), imei: mappedImeiDevices.map((device) => device.deviceimei).join(","), name: selectedReceiverName })}><span>Download All</span></button>
+                ${selectedUserDownload ? `<button class="all" type="button" ${getDownloadData({ userId: mappedImeiDevices.map((device) => device.user_id).filter(Boolean).join(","), imei: mappedImeiDevices.map((device) => device.deviceimei).join(","), name: selectedReceiverName })}><span>Download All</span></button>` : ""}
             </div>
             <div class="receiver-values" id="receiverValues">
                 ${renderDeviceTable(mappedImeiDevices, "", selectedReceiverName)}
@@ -214,7 +216,10 @@ document.addEventListener("keydown", (event) => {
 });
 
 function downloadLog(data) {
-    console.log(`date: ${data.date}`, `imei: ${data.imei}`, `directory: ${data.directory}`, `user: ${data.userId}`, `name: ${data.name}`);
+    const date = data.date.replace(/-/g, '_');
+    const fileName = `${data.directory}_${data.imei}`.toLowerCase();
+
+    window.location.href = `http://148.113.16.25:7000/download-log?date=${date}&directory=${data.directory}/${data.userId}&fileName=${fileName}`;
 }
 
 function downloadAll(data) {
