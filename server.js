@@ -1,6 +1,7 @@
 require("dotenv").config();
 
 const express = require("express");
+const http = require("http");
 const path = require("path");
 const session = require("express-session");
 
@@ -59,6 +60,43 @@ app.use(
 app.use("/api/auth", authRoutes);
 app.use("/api/receivers", authMiddleware, receiverRoutes);
 app.use("/api/mines", authMiddleware, minesPushRoutes);
+
+app.get("/api/download-log", authMiddleware, (req, res) => {
+    const parameters = new URLSearchParams();
+
+    ["date", "directory", "fileName"].forEach((key) => {
+        if (typeof req.query[key] === "string") {
+            parameters.set(key, req.query[key]);
+        }
+    });
+
+    const downloadRequest = http.get({
+        hostname: "148.113.16.25",
+        port: 7000,
+        path: `/download-log?${parameters.toString()}`
+    }, (downloadResponse) => {
+        res.status(downloadResponse.statusCode || 502);
+
+        ["content-disposition", "content-length", "content-type"].forEach((header) => {
+            if (downloadResponse.headers[header]) {
+                res.setHeader(header, downloadResponse.headers[header]);
+            }
+        });
+
+        downloadResponse.pipe(res);
+    });
+
+    downloadRequest.on("error", (error) => {
+        console.error("Download proxy error:", error);
+
+        if (!res.headersSent) {
+            res.status(502).json({
+                success: false,
+                message: "Unable to fetch the requested log."
+            });
+        }
+    });
+});
 
 /*
 |--------------------------------------------------------------------------

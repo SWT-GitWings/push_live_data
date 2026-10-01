@@ -218,8 +218,13 @@ document.addEventListener("keydown", (event) => {
 function downloadLog(data) {
     const date = data.date.replace(/-/g, '_');
     const fileName = `${data.directory}_${data.imei}`.toLowerCase();
+    const parameters = new URLSearchParams({
+        date,
+        directory: `${data.directory}/${data.userId}`,
+        fileName
+    });
 
-    window.location.href = `http://148.113.16.25:7000/download-log?date=${date}&directory=${data.directory}/${data.userId}&fileName=${fileName}`;
+    window.location.href = `/api/download-log?${parameters.toString()}`;
 }
 
 function downloadAll(data) {
