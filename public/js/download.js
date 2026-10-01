@@ -286,7 +286,7 @@ async function downloadAll(data, button) {
     let fileName;
     if (data.userDownload == 1) {
         if (isAlertDownload) {
-            fileName = `${data.directory}_${data.userId}_alert`.toLowerCase();
+            fileName = `${data.directory}_alert_${data.userId}`.toLowerCase();
         } else {
             fileName = `${data.directory}_${data.userId}`.toLowerCase();
         }
