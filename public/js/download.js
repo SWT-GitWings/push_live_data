@@ -102,7 +102,7 @@ function renderUsers() {
                 <div class="user-avatar" aria-hidden="true">${escapeHtml(user.name.charAt(0).toUpperCase())}</div>
                 <div class="user-name">${escapeHtml(user.name)}</div>
                 <div class="count">${user.devices.length} Devices</div>
-                ${selectedUserDownload ? `<button class="all" type="button" ${getDownloadData({ userId: user.id, imei: user.devices.map((device) => device.deviceimei).join(","), name: user.name })}><span>Download All</span></button>` : ""}
+                ${selectedUserDownload || selectedDirectoryDownload ? `<button class="all" type="button" ${getDownloadData({ userId: user.id, imei: user.devices.map((device) => device.deviceimei).join(","), name: user.name })}><span>Download All</span></button>` : ""}
             </div>
             <div class="receiver-values" data-values="${user.id}">
                 ${renderDeviceTable(user.devices, user.id, user.name)}
@@ -129,7 +129,7 @@ function renderImeiReceiver() {
                 <div class="user-avatar" aria-hidden="true">R</div>
                 <div class="user-name">${escapeHtml(selectedReceiverName)}</div>
                 <div class="count">${mappedImeiDevices.length} Devices</div>
-                ${selectedUserDownload ? `<button class="all" type="button" ${getDownloadData({ userId: mappedImeiDevices.map((device) => device.user_id).filter(Boolean).join(","), imei: mappedImeiDevices.map((device) => device.deviceimei).join(","), name: selectedReceiverName })}><span>Download All</span></button>` : ""}
+                ${selectedUserDownload || selectedDirectoryDownload ? `<button class="all" type="button" ${getDownloadData({ userId: mappedImeiDevices.map((device) => device.user_id).filter(Boolean).join(","), imei: mappedImeiDevices.map((device) => device.deviceimei).join(","), name: selectedReceiverName })}><span>Download All</span></button>` : ""}
             </div>
             <div class="receiver-values" id="receiverValues">
                 ${renderDeviceTable(mappedImeiDevices, "", selectedReceiverName)}
@@ -260,7 +260,13 @@ async function downloadLog(data) {
 
 async function downloadAll(data) {
     const date = data.date.replace(/-/g, '_');
-    const fileName = `${data.directory}_${data.userId}`.toLowerCase();
+    let fileName;
+    if (data.userDownload) {
+        fileName = `${data.directory}_${data.userId}`.toLowerCase();
+    } else {
+        fileName = `${data.directory}`.toLowerCase();
+    }
+
     const parameters = new URLSearchParams({
         date,
         directory: `${data.directory}`,
