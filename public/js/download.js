@@ -247,8 +247,36 @@ async function downloadLog(data) {
     }
 }
 
-function downloadAll(data) {
-    console.log(`date: ${data.date}`, `imei: ${data.imei}`, `directory: ${data.directory}`, `user: ${data.userId}`, `name: ${data.name}`);
+async function downloadAll(data) {
+    const date = data.date.replace(/-/g, '_');
+    const fileName = `${data.directory}_${data.userId}`.toLowerCase();
+    const parameters = new URLSearchParams({
+        date,
+        directory: `${data.directory}`,
+        fileName
+    });
+
+    try {
+        const response = await fetch(`/api/download-log?${parameters.toString()}`);
+
+        if (!response.ok) {
+            const message = (await response.text()).trim();
+            alert(message || `Unable to download the log (HTTP ${response.status}).`);
+            return;
+        }
+
+        const downloadUrl = URL.createObjectURL(await response.blob());
+        const link = document.createElement("a");
+        link.href = downloadUrl;
+        link.download = fileName;
+        document.body.appendChild(link);
+        link.click();
+        link.remove();
+        URL.revokeObjectURL(downloadUrl);
+    } catch (error) {
+        console.error("Download log error:", error);
+        alert("Unable to download the log. Please try again.");
+    }
 }
 
 logDateInput.min = getLocalDate(-6);
