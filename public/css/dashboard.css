@@ -856,6 +856,11 @@ select:focus,
   text-align: center;
 }
 
+.device .status-cell {
+  width: 110px;
+  text-align: center;
+}
+
 .download {
   width: 36px;
   height: 27px;
@@ -863,6 +868,33 @@ select:focus,
   background: #fff0f2;
   color: var(--red);
   line-height: 1;
+}
+
+.status {
+  display: inline-flex;
+  min-width: 72px;
+  justify-content: center;
+  padding: 5px 8px;
+  border-radius: 5px;
+  color: #fff;
+  font-size: 12px;
+  font-weight: 700;
+}
+
+.status-parking {
+  background: #2563eb;
+}
+
+.status-idle {
+  background: #d69e00;
+}
+
+.status-moving {
+  background: #16a34a;
+}
+
+.status-inactive {
+  background: #6b7280;
 }
 
 .all:hover,

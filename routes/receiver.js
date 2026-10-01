@@ -14,6 +14,99 @@ function reverseIds(ids) {
     return [...ids].reverse();
 }
 
+function getDeviceStatus({ ignition, speed, device_updatedtime }) {
+    const updatedAt = new Date(device_updatedtime);
+
+    if (Number.isNaN(updatedAt.getTime()) || Date.now() - updatedAt.getTime() > 10 * 60 * 1000) {
+        return "Inactive";
+    }
+
+    if (Number(ignition) === 0) {
+        return "Parking";
+    }
+
+    return Number(speed) > 0 ? "Moving" : "Idle";
+}
+
+async function resolveMappedUsersWithDevices(userValue, userType) {
+    const ids = reverseIds((userValue || "").split(",").map(item => item.trim()).filter(Boolean));
+
+    if (ids.length === 0) { return []; }
+
+    let userQuery = "SELECT id, name, email FROM users WHERE id IN (?) AND role_id = 6";
+    const userParams = [ids];
+
+    if (userType === 1) {
+        userQuery += " AND admin_id != ?";
+        userParams.push(1);
+    } else if (userType === 2) {
+        userQuery += " AND admin_id = ?";
+        userParams.push(1);
+    }
+
+    const [userRows] = await pool.query(userQuery, userParams);
+    const [deviceRows] = await pool.query(
+        `SELECT id, user_id, vehicle_name, deviceimei, ignition, speed, device_updatedtime
+         FROM live_data
+         WHERE user_id IN (?)
+         ORDER BY device_updatedtime DESC`,
+        [ids]
+    );
+
+    const devicesByUserId = new Map();
+
+    deviceRows.forEach((device) => {
+        const userId = String(device.user_id);
+        const devices = devicesByUserId.get(userId) || [];
+
+        devices.push({
+            ...device,
+            status: getDeviceStatus(device)
+        });
+        devicesByUserId.set(userId, devices);
+    });
+
+    const usersById = new Map(userRows.map(user => [String(user.id), user]));
+
+    return ids.map((id) => {
+        const user = usersById.get(String(id));
+
+        if (!user) { return null; }
+
+        return {
+            id: user.id,
+            name: user.name,
+            email: user.email,
+            devices: devicesByUserId.get(String(user.id)) || []
+        };
+    }).filter(Boolean);
+}
+
+async function resolveMappedImeiDevices(imeiValue) {
+    const imeis = reverseIds((imeiValue || "").split(",").map(item => item.trim()).filter(Boolean));
+
+    if (imeis.length === 0) { return []; }
+
+    const [deviceRows] = await pool.query(
+        `SELECT id, vehicle_name, deviceimei, ignition, speed, device_updatedtime
+         FROM live_data
+         WHERE deviceimei IN (?)
+         ORDER BY device_updatedtime DESC`,
+        [imeis]
+    );
+
+    const devicesByImei = new Map(deviceRows.map(device => [
+        String(device.deviceimei),
+        { ...device, status: getDeviceStatus(device) }
+    ]));
+
+    return imeis.map(imei => devicesByImei.get(String(imei)) || {
+        vehicle_name: "Unknown vehicle",
+        deviceimei: imei,
+        status: "Inactive"
+    });
+}
+
 async function resolveMappedDisplay(typeOfData, userValue, imeiValue, userType) {
 
     if (typeOfData === "user") {
@@ -195,6 +288,12 @@ router.get("/:id", async (req, res) => {
 
         const { receiver_name, type_of_data, user_value, imei_value } = rows[0];
         const mappedDisplay = await resolveMappedDisplay(type_of_data, user_value, imei_value, req.session.user.type);
+        const mappedUsers = type_of_data === "user"
+            ? await resolveMappedUsersWithDevices(user_value, req.session.user.type)
+            : [];
+        const mappedImeiDevices = type_of_data === "imei"
+            ? await resolveMappedImeiDevices(imei_value)
+            : [];
 
         return res.json({
             success: true,
@@ -203,7 +302,9 @@ router.get("/:id", async (req, res) => {
                 type_of_data,
                 user_value,
                 imei_value,
-                mapped_display: mappedDisplay
+                mapped_display: mappedDisplay,
+                mapped_users: mappedUsers,
+                mapped_imei_devices: mappedImeiDevices
             }
         });
 

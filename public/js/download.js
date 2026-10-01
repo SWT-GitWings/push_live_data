@@ -9,6 +9,8 @@ let selectedReceiverId = "";
 let selectedReceiverName = "";
 let mappedValues = [];
 let mappedType = "user";
+let mappedUsers = [];
+let mappedImeiDevices = [];
 
 function escapeHtml(value) {
     return String(value)
@@ -19,43 +21,88 @@ function escapeHtml(value) {
         .replaceAll("'", "&#039;");
 }
 
-function render() {
+function renderDeviceRows(devices) {
+    return devices.length
+        ? devices.map((device, index) => `
+            <tr class="row">
+                <td>${index + 1}</td>
+                <td>${escapeHtml(`${device.vehicle_name}(${device.deviceimei})`)}</td>
+                <td class="status-cell"><span class="status status-${device.status.toLowerCase()}">${device.status}</span></td>
+                <td class="action"><button class="download" type="button" data-value="${escapeHtml(device.deviceimei)}" title="Download ${escapeHtml(device.deviceimei)}">&darr;</button></td>
+            </tr>`).join("")
+        : "<tr><td colspan=\"4\">No devices found.</td></tr>";
+}
+
+function renderDeviceTable(devices) {
+    return `
+        <table class="device">
+            <thead>
+                <tr>
+                    <th style="width:70px">#</th>
+                    <th>IMEI / Device Number</th>
+                    <th class="status-cell">Status</th>
+                    <th class="action">Action</th>
+                </tr>
+            </thead>
+            <tbody>${renderDeviceRows(devices)}</tbody>
+        </table>`;
+}
+
+function attachDownloadHandlers() {
+    document.querySelectorAll(".download").forEach((button) => {
+        button.addEventListener("click", () => downloadLog(button.dataset.value));
+    });
+
+    document.querySelectorAll(".all").forEach((button) => {
+        button.addEventListener("click", () => downloadAll(button.dataset.name));
+    });
+}
+
+function renderUsers() {
     if (!selectedReceiverId) {
         usersContainer.innerHTML = "";
         return;
     }
 
-    const valueLabel = mappedType === "imei" ? "IMEI / Device Number" : "User";
-    const sectionLabel = mappedType === "imei" ? "Devices" : "Users";
-    const rows = mappedValues.length
-        ? mappedValues.map((item, index) => `
-            <tr class="row">
-                <td>${index + 1}</td>
-                <td>${escapeHtml(item.label || item.value)}</td>
-                <td class="action"><button class="download" type="button" data-value="${escapeHtml(item.value)}" title="Download ${escapeHtml(item.label || item.value)}">&darr;</button></td>
-            </tr>`).join("")
-        : `<tr><td colspan="3">No mapped ${sectionLabel.toLowerCase()} found.</td></tr>`;
+    usersContainer.innerHTML = mappedUsers.map((user) => {
+        return `
+        <div class="user" data-user-id="${user.id}">
+            <div class="user-head">
+                <button class="toggle" type="button" data-toggle="${user.id}" aria-label="Toggle ${escapeHtml(user.name)}">&or;</button>
+                <div class="user-avatar" aria-hidden="true">${escapeHtml(user.name.charAt(0).toUpperCase())}</div>
+                <div class="user-name">${escapeHtml(user.name)}</div>
+                <div class="count">${user.devices.length} Devices</div>
+                <button class="all" type="button" data-name="${escapeHtml(user.name)}"><span>Download All</span></button>
+            </div>
+            <div class="receiver-values" data-values="${user.id}">
+                ${renderDeviceTable(user.devices)}
+            </div>
+        </div>`;
+    }).join("");
 
+    document.querySelectorAll("[data-toggle]").forEach((toggle) => {
+        toggle.addEventListener("click", () => {
+            const values = document.querySelector(`[data-values="${toggle.dataset.toggle}"]`);
+            values.classList.toggle("hidden");
+            toggle.innerHTML = values.classList.contains("hidden") ? "&rsaquo;" : "&or;";
+        });
+    });
+
+    attachDownloadHandlers();
+}
+
+function renderImeiReceiver() {
     usersContainer.innerHTML = `
         <div class="user">
             <div class="user-head">
                 <button class="toggle" id="receiverToggle" type="button" aria-label="Toggle ${escapeHtml(selectedReceiverName)}">&or;</button>
                 <div class="user-avatar" aria-hidden="true">R</div>
                 <div class="user-name">${escapeHtml(selectedReceiverName)}</div>
-                <div class="count">${mappedValues.length} ${sectionLabel}</div>
-                <button class="all" id="downloadAll" type="button"><span>Download All</span></button>
+                <div class="count">${mappedImeiDevices.length} Devices</div>
+                <button class="all" type="button" data-name="${escapeHtml(selectedReceiverName)}"><span>Download All</span></button>
             </div>
-            <div id="receiverValues">
-                <table class="device">
-                    <thead>
-                        <tr>
-                            <th style="width:70px">#</th>
-                            <th>${valueLabel}</th>
-                            <th class="action">Action</th>
-                        </tr>
-                    </thead>
-                    <tbody>${rows}</tbody>
-                </table>
+            <div class="receiver-values" id="receiverValues">
+                ${renderDeviceTable(mappedImeiDevices)}
             </div>
         </div>`;
 
@@ -65,11 +112,7 @@ function render() {
         document.getElementById("receiverToggle").innerHTML = values.classList.contains("hidden") ? "&rsaquo;" : "&or;";
     });
 
-    document.querySelectorAll(".download").forEach((button) => {
-        button.addEventListener("click", () => downloadLog(button.dataset.value));
-    });
-
-    document.getElementById("downloadAll").addEventListener("click", downloadAll);
+    attachDownloadHandlers();
 }
 
 function renderReceiverOptions() {
@@ -119,18 +162,17 @@ async function selectReceiver(id, name) {
 
         mappedType = data.receiver.type_of_data;
         mappedValues = data.receiver.mapped_display || [];
-        render();
+        mappedUsers = data.receiver.mapped_users || [];
+        mappedImeiDevices = data.receiver.mapped_imei_devices || [];
+
+        if (mappedType === "imei") {
+            renderImeiReceiver();
+        } else {
+            renderUsers();
+        }
     } catch (error) {
         console.error("Failed to load receiver mapping:", error);
     }
-}
-
-function downloadLog(value) {
-    alert(`Download log: ${value}`);
-}
-
-function downloadAll() {
-    alert(`Download all logs for ${selectedReceiverName}`);
 }
 
 receiverTrigger.addEventListener("click", () => {
@@ -149,5 +191,13 @@ document.addEventListener("keydown", (event) => {
         closeReceiverDropdown();
     }
 });
+
+function downloadLog(imei) {
+    alert(`Download log: ${imei}`);
+}
+
+function downloadAll(name) {
+    alert(`Download all logs for ${name}`);
+}
 
 loadReceivers();
