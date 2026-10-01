@@ -38,18 +38,28 @@ function getDownloadData({ userId = "", imei = "", name = "" } = {}) {
     return `data-receiver-id="${escapeHtml(selectedReceiverId)}" data-date="${escapeHtml(selectedDate)}" data-directory="${escapeHtml(selectedDirectory)}" data-directory-download="${escapeHtml(selectedDirectoryDownload)}" data-user-download="${escapeHtml(selectedUserDownload)}" data-imei-download="${escapeHtml(selectedImeiDownload)}"${userId ? ` data-user-id="${escapeHtml(userId)}"` : ""}${imei ? ` data-imei="${escapeHtml(imei)}"` : ""}${name ? ` data-name="${escapeHtml(name)}"` : ""}`;
 }
 
+function formatDeviceUpdatedTime(value) {
+    if (!value) {
+        return "No data";
+    }
+
+    const date = new Date(value);
+    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+}
+
 function renderDeviceRows(devices, userId = "", name = "") {
     return devices.length
         ? devices.map((device, index) => `
             <tr class="row">
                 <td>${index + 1}</td>
-                <td>${escapeHtml(`${device.vehicle_name}(${device.deviceimei})`)}</td>
+                <td class="${device.status === "NoData" ? "no-data-vehicle" : ""}">${escapeHtml(`${device.vehicle_name}(${device.deviceimei})`)}</td>
+                <td class="updated-time">${escapeHtml(formatDeviceUpdatedTime(device.device_updatedtime))}</td>
                 <td class="status-cell"><span class="status status-${device.status.toLowerCase()}">${device.status}</span></td>
-                <td class="action">
+                ${selectedImeiDownload ? `<td class="action">` : ""}
                 ${selectedImeiDownload ? `<button class="download" type="button" ${getDownloadData({ userId, imei: device.deviceimei, name })} title="Download ${escapeHtml(device.deviceimei)}">&darr;</button>` : ""}
-                </td>
+                ${selectedImeiDownload ? `</td>` : ""}
             </tr>`).join("")
-        : "<tr><td colspan=\"4\">No devices found.</td></tr>";
+        : `<tr><td colspan="${selectedImeiDownload ? 5 : 4}">No devices found.</td></tr>`;
 }
 
 function renderDeviceTable(devices, userId = "", name = "") {
@@ -59,8 +69,9 @@ function renderDeviceTable(devices, userId = "", name = "") {
                 <tr>
                     <th style="width:70px">#</th>
                     <th>IMEI / Device Number</th>
+                    <th class="updated-time">Updated Time</th>
                     <th class="status-cell">Status</th>
-                    <th class="action">Action</th>
+                    ${selectedImeiDownload ? `<th class="action">Action</th>` : ""}
                 </tr>
             </thead>
             <tbody>${renderDeviceRows(devices, userId, name)}</tbody>

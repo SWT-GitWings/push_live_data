@@ -861,6 +861,16 @@ select:focus,
   text-align: center;
 }
 
+.device .updated-time {
+  width: 180px;
+  white-space: nowrap;
+}
+
+.device .no-data-vehicle {
+  color: var(--red);
+  font-weight: 700;
+}
+
 .download {
   width: 36px;
   height: 27px;
@@ -895,6 +905,10 @@ select:focus,
 
 .status-inactive {
   background: #6b7280;
+}
+
+.status-nodata {
+  background: var(--red);
 }
 
 .all:hover,
