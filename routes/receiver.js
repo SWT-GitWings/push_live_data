@@ -17,8 +17,12 @@ function reverseIds(ids) {
 function getDeviceStatus({ ignition, speed, device_updatedtime }) {
     const updatedAt = new Date(device_updatedtime);
 
+    if(device_updatedtime === null || device_updatedtime === undefined) {
+        return "NoData";
+    }
+
     if (Number.isNaN(updatedAt.getTime()) || Date.now() - updatedAt.getTime() > 10 * 60 * 1000) {
-        return "Inactive";
+        return "InActive";
     }
 
     if (Number(ignition) === 0) {
