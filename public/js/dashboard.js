@@ -36,26 +36,10 @@ function renderUsers() {
 
     row.innerHTML = `
         <div class="user-number">${index + 1}</div>
-
         <div class="user-input-wrap">
-            <input
-                class="user-input"
-                type="text"
-                value="${escapeHtml(user.label ?? "")}"
-                placeholder="Search / enter user"
-                data-index="${index}"
-                autocomplete="off"
-                aria-label="Mapped user ${index + 1}"
-            >
+            <input class="user-input" type="text" value="${escapeHtml(user.label ?? "")}" placeholder="Search / enter user" data-index="${index}" autocomplete="off" aria-label="Mapped user ${index + 1}">
         </div>
-
-        <button
-            class="delete-btn"
-            type="button"
-            data-delete="${index}"
-            title="Remove user"
-            aria-label="Remove user ${index + 1}"
-        ><img class="tab-icon" src="/public/images/trash_icon.svg" alt=""></img></button>
+        <button class="delete-btn" type="button" data-delete="${index}" title="Remove user" aria-label="Remove user ${index + 1}"><img class="tab-icon" src="/public/images/trash_icon.svg" alt=""></img></button>
     `;
 
     userList.appendChild(row);

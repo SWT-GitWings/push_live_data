@@ -95,6 +95,12 @@ app.get("/mines-push", authMiddleware, (req, res) => {
     );
 });
 
+app.get("/download-pushed-log", authMiddleware, (req, res) => {
+    res.sendFile(
+        path.join(__dirname, "protected", "download-pushed-log.html")
+    );
+});
+
 /*
 |--------------------------------------------------------------------------
 | Default route
