@@ -3,10 +3,16 @@ const receiverDropdown = document.getElementById("receiverDropdown");
 const receiverTrigger = document.getElementById("receiverTrigger");
 const receiverLabel = document.getElementById("receiverLabel");
 const receiverPanel = document.getElementById("receiverPanel");
+const logDateInput = document.getElementById("logDate");
 
 let receivers = [];
 let selectedReceiverId = "";
 let selectedReceiverName = "";
+let selectedDirectory = "";
+let selectedDirectoryDownload = "";
+let selectedUserDownload = "";
+let selectedImeiDownload = "";
+let selectedDate = "";
 let mappedValues = [];
 let mappedType = "user";
 let mappedUsers = [];
@@ -21,19 +27,30 @@ function escapeHtml(value) {
         .replaceAll("'", "&#039;");
 }
 
-function renderDeviceRows(devices) {
+function getLocalDate(offset = 0) {
+    const date = new Date();
+    date.setDate(date.getDate() + offset);
+    const timezoneOffset = date.getTimezoneOffset() * 60 * 1000;
+    return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 10);
+}
+
+function getDownloadData({ userId = "", imei = "", name = "" } = {}) {
+    return `data-receiver-id="${escapeHtml(selectedReceiverId)}" data-date="${escapeHtml(selectedDate)}" data-directory="${escapeHtml(selectedDirectory)}" data-directory-download="${escapeHtml(selectedDirectoryDownload)}" data-user-download="${escapeHtml(selectedUserDownload)}" data-imei-download="${escapeHtml(selectedImeiDownload)}"${userId ? ` data-user-id="${escapeHtml(userId)}"` : ""}${imei ? ` data-imei="${escapeHtml(imei)}"` : ""}${name ? ` data-name="${escapeHtml(name)}"` : ""}`;
+}
+
+function renderDeviceRows(devices, userId = "", name = "") {
     return devices.length
         ? devices.map((device, index) => `
             <tr class="row">
                 <td>${index + 1}</td>
                 <td>${escapeHtml(`${device.vehicle_name}(${device.deviceimei})`)}</td>
                 <td class="status-cell"><span class="status status-${device.status.toLowerCase()}">${device.status}</span></td>
-                <td class="action"><button class="download" type="button" data-value="${escapeHtml(device.deviceimei)}" title="Download ${escapeHtml(device.deviceimei)}">&darr;</button></td>
+                <td class="action"><button class="download" type="button" ${getDownloadData({ userId, imei: device.deviceimei, name })} title="Download ${escapeHtml(device.deviceimei)}">&darr;</button></td>
             </tr>`).join("")
         : "<tr><td colspan=\"4\">No devices found.</td></tr>";
 }
 
-function renderDeviceTable(devices) {
+function renderDeviceTable(devices, userId = "", name = "") {
     return `
         <table class="device">
             <thead>
@@ -44,17 +61,17 @@ function renderDeviceTable(devices) {
                     <th class="action">Action</th>
                 </tr>
             </thead>
-            <tbody>${renderDeviceRows(devices)}</tbody>
+            <tbody>${renderDeviceRows(devices, userId, name)}</tbody>
         </table>`;
 }
 
 function attachDownloadHandlers() {
     document.querySelectorAll(".download").forEach((button) => {
-        button.addEventListener("click", () => downloadLog(button.dataset.value));
+        button.addEventListener("click", () => downloadLog(button.dataset));
     });
 
     document.querySelectorAll(".all").forEach((button) => {
-        button.addEventListener("click", () => downloadAll(button.dataset.name));
+        button.addEventListener("click", () => downloadAll(button.dataset));
     });
 }
 
@@ -72,10 +89,10 @@ function renderUsers() {
                 <div class="user-avatar" aria-hidden="true">${escapeHtml(user.name.charAt(0).toUpperCase())}</div>
                 <div class="user-name">${escapeHtml(user.name)}</div>
                 <div class="count">${user.devices.length} Devices</div>
-                <button class="all" type="button" data-name="${escapeHtml(user.name)}"><span>Download All</span></button>
+                <button class="all" type="button" ${getDownloadData({ userId: user.id, imei: user.devices.map((device) => device.deviceimei).join(","), name: user.name })}><span>Download All</span></button>
             </div>
             <div class="receiver-values" data-values="${user.id}">
-                ${renderDeviceTable(user.devices)}
+                ${renderDeviceTable(user.devices, user.id, user.name)}
             </div>
         </div>`;
     }).join("");
@@ -99,10 +116,10 @@ function renderImeiReceiver() {
                 <div class="user-avatar" aria-hidden="true">R</div>
                 <div class="user-name">${escapeHtml(selectedReceiverName)}</div>
                 <div class="count">${mappedImeiDevices.length} Devices</div>
-                <button class="all" type="button" data-name="${escapeHtml(selectedReceiverName)}"><span>Download All</span></button>
+                <button class="all" type="button" ${getDownloadData({ userId: mappedImeiDevices.map((device) => device.user_id).filter(Boolean).join(","), imei: mappedImeiDevices.map((device) => device.deviceimei).join(","), name: selectedReceiverName })}><span>Download All</span></button>
             </div>
             <div class="receiver-values" id="receiverValues">
-                ${renderDeviceTable(mappedImeiDevices)}
+                ${renderDeviceTable(mappedImeiDevices, "", selectedReceiverName)}
             </div>
         </div>`;
 
@@ -161,6 +178,10 @@ async function selectReceiver(id, name) {
         }
 
         mappedType = data.receiver.type_of_data;
+        selectedDirectory = data.receiver.directory ?? "";
+        selectedDirectoryDownload = data.receiver.directory_download ?? "";
+        selectedUserDownload = data.receiver.user_download ?? "";
+        selectedImeiDownload = data.receiver.imei_download ?? "";
         mappedValues = data.receiver.mapped_display || [];
         mappedUsers = data.receiver.mapped_users || [];
         mappedImeiDevices = data.receiver.mapped_imei_devices || [];
@@ -192,12 +213,25 @@ document.addEventListener("keydown", (event) => {
     }
 });
 
-function downloadLog(imei) {
-    alert(`Download log: ${imei}`);
+function downloadLog(data) {
+    console.log(`date: ${data.date}`, `imei: ${data.imei}`, `directory: ${data.directory}`, `user: ${data.userId}`, `name: ${data.name}`);
 }
 
-function downloadAll(name) {
-    alert(`Download all logs for ${name}`);
+function downloadAll(data) {
+    console.log(`date: ${data.date}`, `imei: ${data.imei}`, `directory: ${data.directory}`, `user: ${data.userId}`, `name: ${data.name}`);
 }
+
+logDateInput.min = getLocalDate(-6);
+logDateInput.max = getLocalDate();
+logDateInput.value = getLocalDate();
+selectedDate = logDateInput.value;
+
+logDateInput.addEventListener("change", () => {
+    selectedDate = logDateInput.value;
+
+    if (selectedReceiverId) {
+        mappedType === "imei" ? renderImeiReceiver() : renderUsers();
+    }
+});
 
 loadReceivers();

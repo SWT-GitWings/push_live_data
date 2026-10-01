@@ -92,7 +92,7 @@ async function resolveMappedImeiDevices(imeiValue) {
     if (imeis.length === 0) { return []; }
 
     const [deviceRows] = await pool.query(
-        `SELECT id, vehicle_name, deviceimei, ignition, speed, device_updatedtime
+        `SELECT id, user_id, vehicle_name, deviceimei, ignition, speed, device_updatedtime
          FROM live_data
          WHERE deviceimei IN (?)
          ORDER BY device_updatedtime DESC`,
@@ -279,7 +279,7 @@ router.get("/:id", async (req, res) => {
 
     try {
         const [rows] = await pool.query(
-            "SELECT receiver_name, type_of_data, user_value, imei_value FROM custom_push_api WHERE id = ?",
+            "SELECT receiver_name, directory, directory_download, user_download, imei_download, type_of_data, user_value, imei_value FROM custom_push_api WHERE id = ?",
             [req.params.id]
         );
 
@@ -290,7 +290,16 @@ router.get("/:id", async (req, res) => {
             });
         }
 
-        const { receiver_name, type_of_data, user_value, imei_value } = rows[0];
+        const {
+            receiver_name,
+            directory,
+            directory_download,
+            user_download,
+            imei_download,
+            type_of_data,
+            user_value,
+            imei_value
+        } = rows[0];
         const mappedDisplay = await resolveMappedDisplay(type_of_data, user_value, imei_value, req.session.user.type);
         const mappedUsers = type_of_data === "user"
             ? await resolveMappedUsersWithDevices(user_value, req.session.user.type)
@@ -303,6 +312,10 @@ router.get("/:id", async (req, res) => {
             success: true,
             receiver: {
                 receiver_name,
+                directory,
+                directory_download,
+                user_download,
+                imei_download,
                 type_of_data,
                 user_value,
                 imei_value,
