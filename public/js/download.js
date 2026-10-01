@@ -80,11 +80,11 @@ function renderDeviceTable(devices, userId = "", name = "") {
 
 function attachDownloadHandlers() {
     document.querySelectorAll(".download").forEach((button) => {
-        button.addEventListener("click", () => downloadLog(button.dataset));
+        button.addEventListener("click", () => downloadLog(button.dataset, button));
     });
 
     document.querySelectorAll(".all").forEach((button) => {
-        button.addEventListener("click", () => downloadAll(button.dataset));
+        button.addEventListener("click", () => downloadAll(button.dataset, button));
     });
 }
 
@@ -226,7 +226,27 @@ document.addEventListener("keydown", (event) => {
     }
 });
 
-async function downloadLog(data) {
+function setDownloadLoading(button, isLoading) {
+    document.querySelectorAll(".download, .all").forEach((control) => {
+        control.disabled = isLoading;
+    });
+
+    button.classList.toggle("is-loading", isLoading);
+    button.setAttribute("aria-busy", String(isLoading));
+}
+
+function saveDownloadedFile(blob, fileName) {
+    const downloadUrl = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = downloadUrl;
+    link.download = fileName;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(downloadUrl);
+}
+
+async function downloadLog(data, button) {
     const date = data.date.replace(/-/g, '_');
     const fileName = `${data.directory}_${data.imei}`.toLowerCase();
     const parameters = new URLSearchParams({
@@ -234,6 +254,8 @@ async function downloadLog(data) {
         directory: `${data.directory}/${data.userId}`,
         fileName
     });
+
+    setDownloadLoading(button, true);
 
     try {
         const response = await fetch(`/api/download-log?${parameters.toString()}`);
@@ -244,24 +266,20 @@ async function downloadLog(data) {
             return;
         }
 
-        const downloadUrl = URL.createObjectURL(await response.blob());
-        const link = document.createElement("a");
-        link.href = downloadUrl;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(downloadUrl);
+        saveDownloadedFile(await response.blob(), fileName);
     } catch (error) {
         console.error("Download log error:", error);
         alert("Unable to download the log. Please try again.");
+    } finally {
+        setDownloadLoading(button, false);
     }
 }
 
-async function downloadAll(data) {
+async function downloadAll(data, button) {
     const date = data.date.replace(/-/g, '_');
+
     let fileName;
-    if (data.userDownload) {
+    if (data.userDownload == 1) {
         fileName = `${data.directory}_${data.userId}`.toLowerCase();
     } else {
         fileName = `${data.directory}`.toLowerCase();
@@ -273,6 +291,8 @@ async function downloadAll(data) {
         fileName
     });
 
+    setDownloadLoading(button, true);
+
     try {
         const response = await fetch(`/api/download-log?${parameters.toString()}`);
 
@@ -282,17 +302,12 @@ async function downloadAll(data) {
             return;
         }
 
-        const downloadUrl = URL.createObjectURL(await response.blob());
-        const link = document.createElement("a");
-        link.href = downloadUrl;
-        link.download = fileName;
-        document.body.appendChild(link);
-        link.click();
-        link.remove();
-        URL.revokeObjectURL(downloadUrl);
+        saveDownloadedFile(await response.blob(), fileName);
     } catch (error) {
         console.error("Download log error:", error);
         alert("Unable to download the log. Please try again.");
+    } finally {
+        setDownloadLoading(button, false);
     }
 }
 
