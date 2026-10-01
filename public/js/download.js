@@ -12,6 +12,7 @@ let selectedDirectory = "";
 let selectedDirectoryDownload = "";
 let selectedUserDownload = "";
 let selectedImeiDownload = "";
+let selectedAlertDownload = "";
 let selectedDate = "";
 let mappedValues = [];
 let mappedType = "user";
@@ -34,8 +35,8 @@ function getLocalDate(offset = 0) {
     return new Date(date.getTime() - timezoneOffset).toISOString().slice(0, 10);
 }
 
-function getDownloadData({ userId = "", imei = "", name = "" } = {}) {
-    return `data-receiver-id="${escapeHtml(selectedReceiverId)}" data-date="${escapeHtml(selectedDate)}" data-directory="${escapeHtml(selectedDirectory)}" data-directory-download="${escapeHtml(selectedDirectoryDownload)}" data-user-download="${escapeHtml(selectedUserDownload)}" data-imei-download="${escapeHtml(selectedImeiDownload)}"${userId ? ` data-user-id="${escapeHtml(userId)}"` : ""}${imei ? ` data-imei="${escapeHtml(imei)}"` : ""}${name ? ` data-name="${escapeHtml(name)}"` : ""}`;
+function getDownloadData({ userId = "", imei = "", name = "", downloadType = "" } = {}) {
+    return `data-receiver-id="${escapeHtml(selectedReceiverId)}" data-date="${escapeHtml(selectedDate)}" data-directory="${escapeHtml(selectedDirectory)}" data-directory-download="${escapeHtml(selectedDirectoryDownload)}" data-user-download="${escapeHtml(selectedUserDownload)}" data-imei-download="${escapeHtml(selectedImeiDownload)}" data-alert-download="${escapeHtml(selectedAlertDownload)}"${downloadType ? ` data-download-type="${escapeHtml(downloadType)}"` : ""}${userId ? ` data-user-id="${escapeHtml(userId)}"` : ""}${imei ? ` data-imei="${escapeHtml(imei)}"` : ""}${name ? ` data-name="${escapeHtml(name)}"` : ""}`;
 }
 
 function formatDeviceUpdatedTime(value) {
@@ -102,7 +103,8 @@ function renderUsers() {
                 <div class="user-avatar" aria-hidden="true">${escapeHtml(user.name.charAt(0).toUpperCase())}</div>
                 <div class="user-name">${escapeHtml(user.name)}</div>
                 <div class="count">${user.devices.length} Devices</div>
-                ${selectedUserDownload || selectedDirectoryDownload ? `<button class="all" type="button" ${getDownloadData({ userId: user.id, imei: user.devices.map((device) => device.deviceimei).join(","), name: user.name })}><span>Download All</span></button>` : ""}
+                ${selectedUserDownload || selectedDirectoryDownload ? `<button class="all" type="button" ${getDownloadData({ userId: user.id, imei: user.devices.map((device) => device.deviceimei).join(","), name: user.name, downloadType: "all" })}><span>Download All</span></button>` : ""}
+                ${Number(selectedAlertDownload) === 1 ? `<button class="all" type="button" ${getDownloadData({ userId: user.id, imei: user.devices.map((device) => device.deviceimei).join(","), name: user.name, downloadType: "alert" })}><span>Download Alert</span></button>` : ""}
             </div>
             <div class="receiver-values" data-values="${user.id}">
                 ${renderDeviceTable(user.devices, user.id, user.name)}
@@ -129,7 +131,8 @@ function renderImeiReceiver() {
                 <div class="user-avatar" aria-hidden="true">R</div>
                 <div class="user-name">${escapeHtml(selectedReceiverName)}</div>
                 <div class="count">${mappedImeiDevices.length} Devices</div>
-                ${selectedUserDownload || selectedDirectoryDownload ? `<button class="all" type="button" ${getDownloadData({ userId: mappedImeiDevices.map((device) => device.user_id).filter(Boolean).join(","), imei: mappedImeiDevices.map((device) => device.deviceimei).join(","), name: selectedReceiverName })}><span>Download All</span></button>` : ""}
+                ${selectedUserDownload || selectedDirectoryDownload ? `<button class="all" type="button" ${getDownloadData({ userId: mappedImeiDevices.map((device) => device.user_id).filter(Boolean).join(","), imei: mappedImeiDevices.map((device) => device.deviceimei).join(","), name: selectedReceiverName, downloadType: "all" })}><span>Download All</span></button>` : ""}
+                ${Number(selectedAlertDownload) === 1 ? `<button class="all" type="button" ${getDownloadData({ userId: mappedImeiDevices.map((device) => device.user_id).filter(Boolean).join(","), imei: mappedImeiDevices.map((device) => device.deviceimei).join(","), name: selectedReceiverName, downloadType: "alert" })}><span>Download Alert</span></button>` : ""}
             </div>
             <div class="receiver-values" id="receiverValues">
                 ${renderDeviceTable(mappedImeiDevices, "", selectedReceiverName)}
@@ -195,6 +198,7 @@ async function selectReceiver(id, name) {
         selectedDirectoryDownload = data.receiver.directory_download ?? "";
         selectedUserDownload = data.receiver.user_download ?? "";
         selectedImeiDownload = data.receiver.imei_download ?? "";
+        selectedAlertDownload = data.receiver.alert_download ?? "";
         mappedValues = data.receiver.mapped_display || [];
         mappedUsers = data.receiver.mapped_users || [];
         mappedImeiDevices = data.receiver.mapped_imei_devices || [];
@@ -277,12 +281,21 @@ async function downloadLog(data, button) {
 
 async function downloadAll(data, button) {
     const date = data.date.replace(/-/g, '_');
+    const isAlertDownload = data.downloadType === "alert";
 
     let fileName;
     if (data.userDownload == 1) {
-        fileName = `${data.directory}_${data.userId}`.toLowerCase();
+        if (isAlertDownload) {
+            fileName = `${data.directory}_${data.userId}_alert`.toLowerCase();
+        } else {
+            fileName = `${data.directory}_${data.userId}`.toLowerCase();
+        }
     } else {
-        fileName = `${data.directory}`.toLowerCase();
+        if (isAlertDownload) {
+            fileName = `${data.directory}_alert`.toLowerCase();
+        } else {
+            fileName = `${data.directory}`.toLowerCase();
+        }
     }
 
     const parameters = new URLSearchParams({

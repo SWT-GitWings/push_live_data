@@ -17,7 +17,7 @@ function reverseIds(ids) {
 function getDeviceStatus({ ignition, speed, device_updatedtime }) {
     const updatedAt = new Date(device_updatedtime);
 
-    if(device_updatedtime === null || device_updatedtime === undefined) {
+    if (device_updatedtime === null || device_updatedtime === undefined) {
         return "NoData";
     }
 
@@ -279,7 +279,7 @@ router.get("/:id", async (req, res) => {
 
     try {
         const [rows] = await pool.query(
-            "SELECT receiver_name, directory, directory_download, user_download, imei_download, type_of_data, user_value, imei_value FROM custom_push_api WHERE id = ?",
+            "SELECT receiver_name, directory, directory_download, user_download, imei_download, alert_download, type_of_data, user_value, imei_value FROM custom_push_api WHERE id = ?",
             [req.params.id]
         );
 
@@ -296,6 +296,7 @@ router.get("/:id", async (req, res) => {
             directory_download,
             user_download,
             imei_download,
+            alert_download,
             type_of_data,
             user_value,
             imei_value
@@ -316,6 +317,7 @@ router.get("/:id", async (req, res) => {
                 directory_download,
                 user_download,
                 imei_download,
+                alert_download,
                 type_of_data,
                 user_value,
                 imei_value,
