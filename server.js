@@ -71,7 +71,7 @@ app.get("/api/download-log", authMiddleware, (req, res) => {
     });
 
     const downloadRequest = http.get({
-        hostname: "148.113.16.25",
+        hostname: "127.0.0.1",
         port: 7000,
         path: `/download-log?${parameters.toString()}`
     }, (downloadResponse) => {
